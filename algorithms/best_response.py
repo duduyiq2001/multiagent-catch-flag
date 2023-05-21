@@ -32,13 +32,13 @@ class QNetwork(nn.Module):
         nn.Conv2d(4, 16, kernel_size=3, stride=1),
         nn.Conv2d(16, 32, kernel_size=3, stride=1),
         nn.Flatten(),
-        nn.Linear(3*3, 64),
+        nn.Linear(32*3*3, 64),
         nn.Linear(64, action_size),
 
         )
 
     def forward(self, x):
-        x = torch.from_numpy(x).float() 
+        x = torch.from_numpy(x).unsqueeze(0).float()
         return self.network(x)
 
 def main():
@@ -59,9 +59,9 @@ def main():
         #time.sleep(0.1)
 
         newobs = [pruneobs(agent) for agent in obs] ##use newobs
-
-        print(newobs[0])
         newobs[0] = np.transpose(newobs[0], (2, 0, 1))
+        print(newobs[0].shape)
+        
 
 
 
