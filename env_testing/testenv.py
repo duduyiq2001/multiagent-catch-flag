@@ -40,7 +40,7 @@ def main():
         ac = [env.action_space.sample() for _ in range(nb_agents)]
 
         obs, _, done, _ = env.step(ac)
-        print(obs)
+        #print(obs)
 
         if done:
             break

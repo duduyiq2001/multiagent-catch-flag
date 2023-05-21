@@ -1,4 +1,5 @@
 from gym_multigrid.multigrid import *
+import time
 
 class CollectGameEnv(MultiGridEnv):
     """
@@ -80,17 +81,25 @@ class CollectGameEnv(MultiGridEnv):
                     print(f'team {a.index} punished')
 
     def _handle_pickup(self, i, rewards, cur_pos, cur_cell): ##mode this function to disallow picking up opposing team's flag
+        #print("efmfelfm")
         if cur_cell:
+            #print("djjdnc")
             if cur_cell.type == "box":
+                #print("enenkded")
                 #if fwd_cell.index in [0, self.agents[i].index]:
-                if cur_cell.get_ball().index == self.agents[i].index and cur_cell.get_ball().type == "ball": # if the ball in the current cell has the same index
+                if cur_cell.get_ball().index == self.agents[i].index and cur_cell.get_ball().type == "ball":
+                    # if the ball in the current cell has the same index
+                    print("picking up")
                     cur_cell.get_ball().cur_pos = np.array([-1, -1])
+                    time.sleep(5)
+                    cur_cell.remove_ball()
                     self.grid.set(*cur_pos, cur_cell.get_agent())
                     team = self.agents[i].index
                     print(f'team {team} pick up')
                     if self.agents[i].index == 2:
-                        self.remaining_ball -= 1            
-                        if self.remaining_ball == 0:
+                        self.remaining_ball -= 1  
+                        print(f'self.remaining_ball {self.remaining_ball}')          
+                        if self.remaining_ball <= 0:
                             self._reward(team, rewards, 20)
                             self.donedone = True
                         
