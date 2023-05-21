@@ -4,7 +4,8 @@ import time
 from gym.envs.registration import register
 import argparse
 import sys
-sys.path.append(r"C:\Users\Administrator\Desktop\multiagent-catch-flag")
+#sys.path.append(r"C:\Users\Administrator\Desktop\multiagent-catch-flag")
+sys.path.append(r"../")
 
 
 parser = argparse.ArgumentParser(description=None)
