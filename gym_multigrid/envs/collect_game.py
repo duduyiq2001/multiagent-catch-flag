@@ -23,7 +23,7 @@ class CollectGameEnv(MultiGridEnv):
         self.balls_reward = balls_reward
         self.zero_sum = zero_sum
         self.donedone = False
-
+        self.remaining_ball = 2
         self.world = World
 
         agents = []
@@ -88,7 +88,15 @@ class CollectGameEnv(MultiGridEnv):
                     self.grid.set(*cur_pos, cur_cell.get_agent())
                     team = self.agents[i].index
                     print(f'team {team} pick up')
-                    self._reward(team, rewards, 3)
+                    if self.agents[i].index == 2:
+                        self.remaining_ball -= 1            
+                        if self.remaining_ball == 0:
+                            self._reward(team, rewards, 20)
+                            self.donedone = True
+                        
+                    else:
+                        self._reward(team, rewards, 40)
+                        self.donedone = True
                 else:
                     print(f'agent {i} illegal pick up')
 

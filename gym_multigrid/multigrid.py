@@ -1272,6 +1272,8 @@ class MultiGridEnv(gym.Env):
         order = np.random.permutation(len(actions))
 
         rewards = np.zeros(len(actions))
+        for i in range(len(rewards)):
+            rewards[i] -= 0.2
         done = False
 
         for i in order:
