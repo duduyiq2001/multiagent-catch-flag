@@ -389,6 +389,9 @@ class Box(WorldObj):
         return self.ball
     def get_agent(self):
         return self.agent
+    def encode(self,world,current_agent=False):
+        return (world.OBJECT_TO_IDX[self.type],world.COLOR_TO_IDX[self.agent.color],world.COLOR_TO_IDX[self.ball.color],0,0,0)
+
 
 
 class Agent(WorldObj):
@@ -755,7 +758,7 @@ class Grid:
 
         return array
 
-    def encode_for_agents(self, world, agent_pos, vis_mask=None):
+    def encode_for_agents(self, world, agent_pos, vis_mask=None): ## very important
         """
         Produce a compact numpy encoding of the grid
         """
@@ -763,7 +766,8 @@ class Grid:
             vis_mask = np.ones((self.width, self.height), dtype=bool)
 
         array = np.zeros((self.width, self.height, world.encode_dim), dtype='uint8')
-
+        print(f'width is {self.width}')
+        print(f'height is {self.height}')
         for i in range(self.width):
             for j in range(self.height):
                 if vis_mask[i, j]:
