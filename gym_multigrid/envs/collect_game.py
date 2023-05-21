@@ -22,12 +22,14 @@ class CollectGameEnv(MultiGridEnv):
         self.balls_index = balls_index
         self.balls_reward = balls_reward
         self.zero_sum = zero_sum
+        self.donedone = False
 
         self.world = World
 
         agents = []
         for i in agents_index:
             agents.append(Agent(self.world, i, view_size=view_size))
+            print("hi")
 
         super().__init__(
             grid_size=size,
@@ -43,6 +45,7 @@ class CollectGameEnv(MultiGridEnv):
 
 
     def _gen_grid(self, width, height):
+        #grid object generated here
         self.grid = Grid(width, height)
 
         # Generate the surrounding walls
@@ -68,25 +71,36 @@ class CollectGameEnv(MultiGridEnv):
         Compute the reward to be given upon success
         """
         for j,a in enumerate(self.agents):
-            if a.index==i or a.index==0:
+            if a.index==i:
                 rewards[j]+=reward
+                print(f'team {a.index} rewarded')
             if self.zero_sum:
-                if a.index!=i or a.index==0:
+                if a.index!=i:
                     rewards[j] -= reward
+                    print(f'team {a.index} punished')
 
-    def _handle_pickup(self, i, rewards, fwd_pos, fwd_cell):
-        if fwd_cell:
-            if fwd_cell.can_pickup():
-                if fwd_cell.index in [0, self.agents[i].index]:
-                    fwd_cell.cur_pos = np.array([-1, -1])
-                    self.grid.set(*fwd_pos, None)
-                    self._reward(i, rewards, fwd_cell.reward)
+    def _handle_pickup(self, i, rewards, cur_pos, cur_cell): ##mode this function to disallow picking up opposing team's flag
+        if cur_cell:
+            if cur_cell.type == "box":
+                #if fwd_cell.index in [0, self.agents[i].index]:
+                if cur_cell.get_ball().index == self.agents[i].index and cur_cell.get_ball().type == "ball": # if the ball in the current cell has the same index
+                    cur_cell.get_ball().cur_pos = np.array([-1, -1])
+                    self.grid.set(*cur_pos, cur_cell.get_agent())
+                    team = self.agents[i].index
+                    print(f'team {team} pick up')
+                    self._reward(team, rewards, 3)
+                else:
+                    print(f'agent {i} illegal pick up')
 
     def _handle_drop(self, i, rewards, fwd_pos, fwd_cell):
         pass
 
     def step(self, actions):
+        
         obs, rewards, done, info = MultiGridEnv.step(self, actions)
+        if self.donedone:
+            done = True
+        
         return obs, rewards, done, info
 
 

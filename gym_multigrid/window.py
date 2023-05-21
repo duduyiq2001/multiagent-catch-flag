@@ -51,9 +51,9 @@ class Window:
 
         # Let matplotlib process UI events
         # This is needed for interactive mode to work properly
-        plt.pause(0.001)
+        plt.pause(0.1)
 
-    def set_caption(self, text):
+    def set_caption(self, text):  ### don't need that 
         """
         Set/update the caption text below the image
         """

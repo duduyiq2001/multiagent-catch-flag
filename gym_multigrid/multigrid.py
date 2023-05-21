@@ -7,7 +7,10 @@ from gym.utils import seeding
 from .rendering import *
 from .window import Window
 import numpy as np
-
+### remaining tasks:
+#so currently each cell can only contain one world object:
+#aka blocking can not be done
+#
 # Size in pixels of a tile in the full-scale human view
 TILE_PIXELS = 32
 
@@ -360,13 +363,14 @@ class Ball(WorldObj):
 
 
 class Box(WorldObj):
-    def __init__(self, world, color, contains=None):
+    def __init__(self, world, color, agent, ball,contains=None):
         super(Box, self).__init__(world, 'box', color)
         self.contains = contains
+        self.agent = agent
+        self.ball = ball
 
     def can_pickup(self):
-        return True
-
+        return False
     def render(self, img):
         c = COLORS[self.color]
 
@@ -381,6 +385,10 @@ class Box(WorldObj):
         # Replace the box by its contents
         env.grid.set(*pos, self.contains)
         return True
+    def get_ball(self):
+        return self.ball
+    def get_agent(self):
+        return self.agent
 
 
 class Agent(WorldObj):
@@ -575,6 +583,8 @@ class Grid:
     def set(self, i, j, v):
         assert i >= 0 and i < self.width
         assert j >= 0 and j < self.height
+        #print(f'v is {v}')
+        #print(f'v is of type{type(v)}')
         self.grid[j * self.width + i] = v
 
     def get(self, i, j):
@@ -832,6 +842,18 @@ class Grid:
                     grid.set(i, j, None)
 
         return mask
+# our customized set of actions
+class customizedActions:
+    available=['still','left','right','forward','pickup']
+    still = 0
+    # Turn left, turn right, move forward
+    left = 1
+    right = 2
+    forward = 3
+
+    # Pick up an object
+    pickup = 4
+    # Drop an object
 
 class Actions:
     available=['still', 'left', 'right', 'forward', 'pickup', 'drop', 'toggle', 'done']
@@ -893,7 +915,7 @@ class MultiGridEnv(gym.Env):
             agents=None,
             partial_obs=True,
             agent_view_size=7,
-            actions_set=Actions,
+            actions_set=customizedActions,
             objects_set = World
     ):
         self.agents = agents
@@ -913,7 +935,7 @@ class MultiGridEnv(gym.Env):
         # Actions are discrete integer values
         self.action_space = spaces.Discrete(len(self.actions.available))
 
-        self.objects=objects_set
+        self.objects=objects_set #observtion space is a world object
 
         if partial_obs:
             self.observation_space = spaces.Box(
@@ -1259,31 +1281,103 @@ class MultiGridEnv(gym.Env):
 
             # Get the position in front of the agent
             fwd_pos = self.agents[i].front_pos
+            cur_pos = self.agents[i].pos
 
             # Get the contents of the cell in front of the agent
+            ### important cell info
             fwd_cell = self.grid.get(*fwd_pos)
+            cur_cell = self.grid.get(*cur_pos)
 
             # Rotate left
             if actions[i] == self.actions.left:
+                
+                #print(f'agent{i} left')
                 self.agents[i].dir -= 1
                 if self.agents[i].dir < 0:
                     self.agents[i].dir += 4
-
-            # Rotate right
-            elif actions[i] == self.actions.right:
-                self.agents[i].dir = (self.agents[i].dir + 1) % 4
-
-            # Move forward
-            elif actions[i] == self.actions.forward:
+                #print(f'agent{i} Forward')
                 if fwd_cell is not None:
                     if fwd_cell.type == 'goal':
                         done = True
-                        self._reward(i, rewards, 1)
+                        self._reward(i, rewards, 1) #rewarding the agent i 
+                    elif fwd_cell.type == 'ball':
+                        #here we can define rewards
+                        print("at BALLLLLLLLLLLLLLLLL")
+                        # set the overlap with a box of agent's color
+                        self.grid.set(*fwd_pos, Box(self.world,self.agents[i].color,self.agents[i], fwd_cell))
+                        self.grid.set(*self.agents[i].pos, None)
+                        self.agents[i].pos = fwd_pos
+
+                        #self._reward(i, rewards, 1) #rewarding the agent i 
                     elif fwd_cell.type == 'switch':
                         self._handle_switch(i, rewards, fwd_pos, fwd_cell)
+                    
+                #can define customized reward here
                 elif fwd_cell is None or fwd_cell.can_overlap():
                     self.grid.set(*fwd_pos, self.agents[i])
-                    self.grid.set(*self.agents[i].pos, None)
+                    if cur_cell.type == "box":
+                        self.grid.set(*cur_pos,cur_cell.get_ball())
+                    else:
+                        self.grid.set(*self.agents[i].pos, None)
+                    self.agents[i].pos = fwd_pos
+                self._handle_special_moves(i, rewards, fwd_pos, fwd_cell)
+
+            # Rotate right
+            elif actions[i] == self.actions.right:
+                #print(f'agent{i} right')
+                self.agents[i].dir = (self.agents[i].dir + 1) % 4
+                ####### move forward too 
+                #print(f'agent{i} Forward')
+                if fwd_cell is not None:
+                    if fwd_cell.type == 'goal':
+                        done = True
+                        self._reward(i, rewards, 1) #rewarding the agent i 
+                    elif fwd_cell.type == 'ball':
+                        #here we can define rewards
+                        print("at BALLLLLLLLLLLLLLLLL")
+                        self.grid.set(*fwd_pos, Box(self.world,self.agents[i].color,self.agents[i], fwd_cell))
+                        self.grid.set(*self.agents[i].pos, None)
+                        self.agents[i].pos = fwd_pos
+
+                        #self._reward(i, rewards, 1) #rewarding the agent i 
+                    elif fwd_cell.type == 'switch':
+                        self._handle_switch(i, rewards, fwd_pos, fwd_cell)
+                    
+                #can define customized reward here
+                elif fwd_cell is None or fwd_cell.can_overlap():
+                    self.grid.set(*fwd_pos, self.agents[i])
+                    if cur_cell.type == "box":
+                        self.grid.set(*cur_pos,cur_cell.get_ball())
+                    else:
+                        self.grid.set(*self.agents[i].pos, None)
+                    self.agents[i].pos = fwd_pos
+                self._handle_special_moves(i, rewards, fwd_pos, fwd_cell)
+
+            # Move forward
+            elif actions[i] == self.actions.forward:
+                #print(f'agent{i} Forward')
+                if fwd_cell is not None:
+                    if fwd_cell.type == 'goal':
+                        done = True
+                        self._reward(i, rewards, 1) #rewarding the agent i 
+                    elif fwd_cell.type == 'ball':
+                        #here we can define rewards
+                        print("at BALLLLLLLLLLLLLLLLL")
+                        self.grid.set(*fwd_pos, Box(self.world,self.agents[i].color,self.agents[i], fwd_cell))
+                        self.grid.set(*self.agents[i].pos, None)
+                        self.agents[i].pos = fwd_pos
+
+                        #self._reward(i, rewards, 1) #rewarding the agent i 
+                    elif fwd_cell.type == 'switch':
+                        self._handle_switch(i, rewards, fwd_pos, fwd_cell)
+                    
+                #can define customized reward here
+                elif fwd_cell is None or fwd_cell.can_overlap():
+                    self.grid.set(*fwd_pos, self.agents[i]) ##setting this to a list of two world objects, aka agent and ball
+                    if cur_cell.type == "box":
+                        self.grid.set(*cur_pos,cur_cell.get_ball())
+                    else:
+                        self.grid.set(*self.agents[i].pos, None)
                     self.agents[i].pos = fwd_pos
                 self._handle_special_moves(i, rewards, fwd_pos, fwd_cell)
 
@@ -1292,7 +1386,8 @@ class MultiGridEnv(gym.Env):
 
             # Pick up an object
             elif actions[i] == self.actions.pickup:
-                self._handle_pickup(i, rewards, fwd_pos, fwd_cell)
+                print(f'agent{i} pickup')
+                self._handle_pickup(i, rewards, cur_pos, cur_cell) #changed to cur_cell and cur_pos
 
             # Drop an object
             elif actions[i] == self.actions.drop:
