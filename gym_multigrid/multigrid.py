@@ -918,7 +918,7 @@ class MultiGridEnv(gym.Env):
             height=None,
             max_steps=100,
             see_through_walls=False,
-            seed=2,
+            seed=None,
             agents=None,
             partial_obs=True,
             agent_view_size=7,
@@ -1010,6 +1010,7 @@ class MultiGridEnv(gym.Env):
 
     def seed(self, seed=1337):
         # Seed the random number generator
+       
         self.np_random, _ = seeding.np_random(seed)
         return [seed]
 
@@ -1107,8 +1108,9 @@ class MultiGridEnv(gym.Env):
         """
         Generate random integer in [low,high[
         """
-
-        return self.np_random.randint(low, high)
+        num = self.np_random.randint(low, high)
+        print(f'random num')
+        return num
 
     def _rand_float(self, low, high):
         """
@@ -1199,11 +1201,12 @@ class MultiGridEnv(gym.Env):
                 raise RecursionError('rejection sampling failed in place_obj')
 
             num_tries += 1
-
+            #posgen
             pos = np.array((
                 self._rand_int(top[0], min(top[0] + size[0], self.grid.width)),
                 self._rand_int(top[1], min(top[1] + size[1], self.grid.height))
             ))
+            print(pos)
 
             # Don't place the object on top of another object
             if self.grid.get(*pos) != None:
