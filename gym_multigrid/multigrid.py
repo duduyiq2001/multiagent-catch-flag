@@ -351,7 +351,7 @@ class Key(WorldObj):
 
 class Ball(WorldObj):
     def __init__(self, world, index=0, reward=1):
-        print(index, world.IDX_TO_COLOR[index])        
+        #print(index, world.IDX_TO_COLOR[index])        
         super(Ball, self).__init__(world, 'ball', world.IDX_TO_COLOR[index])
         self.index = index
         self.reward = reward
@@ -1206,7 +1206,7 @@ class MultiGridEnv(gym.Env):
                 self._rand_int(top[0], min(top[0] + size[0], self.grid.width)),
                 self._rand_int(top[1], min(top[1] + size[1], self.grid.height))
             ))
-            print(pos)
+            #print(pos)
 
             # Don't place the object on top of another object
             if self.grid.get(*pos) != None:
@@ -1320,7 +1320,7 @@ class MultiGridEnv(gym.Env):
                         if cur_cell.type == "box":
                             self.grid.set(*cur_pos,cur_cell.get_ball())
                             print("left ball")
-                            time.sleep(5)
+                            #time.sleep(5)
                         else:  
                             self.grid.set(*self.agents[i].pos, None)
                         self.agents[i].pos = fwd_pos
@@ -1335,7 +1335,7 @@ class MultiGridEnv(gym.Env):
                     if cur_cell.type == "box":
                         self.grid.set(*cur_pos,cur_cell.get_ball())
                         print("left ball")
-                        time.sleep(5)
+                        #time.sleep(5)
                     else:
                         self.grid.set(*self.agents[i].pos, None)
                     self.agents[i].pos = fwd_pos
@@ -1358,7 +1358,7 @@ class MultiGridEnv(gym.Env):
                         if cur_cell.type == "box":
                             self.grid.set(*cur_pos,cur_cell.get_ball())
                             print("left ball")
-                            time.sleep(5)
+                            #time.sleep(5)
                         else:  
                             self.grid.set(*self.agents[i].pos, None)
                         self.agents[i].pos = fwd_pos
@@ -1373,7 +1373,7 @@ class MultiGridEnv(gym.Env):
                     if cur_cell.type == "box":
                         self.grid.set(*cur_pos,cur_cell.get_ball())
                         print("left ball")
-                        time.sleep(5)
+                        #time.sleep(5)
                     else:
                         self.grid.set(*self.agents[i].pos, None)
                     self.agents[i].pos = fwd_pos
@@ -1393,7 +1393,7 @@ class MultiGridEnv(gym.Env):
                         if cur_cell.type == "box":
                             self.grid.set(*cur_pos,cur_cell.get_ball())
                             print("left ball")
-                            time.sleep(5)
+                            #time.sleep(5)
                         else:  
                             self.grid.set(*self.agents[i].pos, None)
                         self.agents[i].pos = fwd_pos
@@ -1408,7 +1408,7 @@ class MultiGridEnv(gym.Env):
                     if cur_cell.type == "box":
                         self.grid.set(*cur_pos,cur_cell.get_ball())
                         print("left ball")
-                        time.sleep(5)
+                        #time.sleep(5)
                     else:
                         self.grid.set(*self.agents[i].pos, None)
                     self.agents[i].pos = fwd_pos
@@ -1419,7 +1419,7 @@ class MultiGridEnv(gym.Env):
 
             # Pick up an object
             elif actions[i] == self.actions.pickup:
-                print(f'agent{i} pickup')
+                #print(f'agent{i} pickup')
                 self._handle_pickup(i, rewards, cur_pos, cur_cell) #changed to cur_cell and cur_pos
 
             # Drop an object

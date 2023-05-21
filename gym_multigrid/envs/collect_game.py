@@ -30,7 +30,7 @@ class CollectGameEnv(MultiGridEnv):
         agents = []
         for i in agents_index:
             agents.append(Agent(self.world, i, view_size=view_size))
-            print("hi")
+            #print("hi")
 
         super().__init__(
             grid_size=size,
@@ -59,7 +59,7 @@ class CollectGameEnv(MultiGridEnv):
         
         for index, reward in zip(self.balls_index, self.balls_reward):
             
-            print(index)
+            #print(index)
             self.place_obj(Ball(self.world, index, reward))
 
         # Randomize the player start position and orientation
@@ -89,16 +89,16 @@ class CollectGameEnv(MultiGridEnv):
                 #if fwd_cell.index in [0, self.agents[i].index]:
                 if cur_cell.get_ball().index == self.agents[i].index and cur_cell.get_ball().type == "ball":
                     # if the ball in the current cell has the same index
-                    print("picking up")
+                    #print("picking up")
                     cur_cell.get_ball().cur_pos = np.array([-1, -1])
-                    time.sleep(5)
+                    #time.sleep(5)
                     cur_cell.remove_ball()
                     self.grid.set(*cur_pos, cur_cell.get_agent())
                     team = self.agents[i].index
                     print(f'team {team} pick up')
                     if self.agents[i].index == 2:
                         self.remaining_ball -= 1  
-                        print(f'self.remaining_ball {self.remaining_ball}')          
+                        #print(f'self.remaining_ball {self.remaining_ball}')          
                         if self.remaining_ball <= 0:
                             self._reward(team, rewards, 20)
                             self.donedone = True
