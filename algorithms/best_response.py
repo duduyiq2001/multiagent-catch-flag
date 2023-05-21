@@ -32,12 +32,13 @@ class QNetwork(nn.Module):
         nn.Conv2d(4, 16, kernel_size=3, stride=1),
         nn.Conv2d(16, 32, kernel_size=3, stride=1),
         nn.Flatten(),
-        nn.Linear(32*3*3, 64),
+        nn.Linear(3*3, 64),
         nn.Linear(64, action_size),
 
         )
 
     def forward(self, x):
+        x = torch.from_numpy(x).float() 
         return self.network(x)
 
 def main():
@@ -49,7 +50,6 @@ def main():
     env = gym.make('multigrid-collect-v0')
 
     obs = env.reset()
-    print(obs[0])
     qnet = QNetwork(5)
 
     nb_agents = len(env.agents)
@@ -59,9 +59,17 @@ def main():
         #time.sleep(0.1)
 
         newobs = [pruneobs(agent) for agent in obs] ##use newobs
+
         print(newobs[0])
+        newobs[0] = np.transpose(newobs[0], (2, 0, 1))
+
+
+
+# Convert to a PyTorch tensor
         action_list = qnet.forward(newobs[0])
+        print(action_list)
         action = action_list.argmax().item()
+
         ac_of_team = [env.action_space.sample() for _ in range(nb_agents-1)]
         ac = [action] + ac_of_team
         obs, _, done, _ = env.step(ac)
