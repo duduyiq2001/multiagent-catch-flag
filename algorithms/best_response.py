@@ -10,6 +10,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 #sys.path.append(r"C:\Users\Administrator\Desktop\multiagent-catch-flag")
 sys.path.append(r"../")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
@@ -39,6 +40,7 @@ class QNetwork(nn.Module):
 
     def forward(self, x):
         x = torch.from_numpy(x).unsqueeze(0).float()
+        print(x.shape)
         return self.network(x)
 
 def main():
