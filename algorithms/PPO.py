@@ -60,11 +60,66 @@ def pruneobs(obs):
     return newarray
 
 
+class Buffer:
+    def __init__(self,gamma):
+        self.states = [] #three d arrays of integers
+        self.actions = []  #integer
+        self.advantages = [] #float
+        self.rewards = []  #float
+        self.cum_returns = [] #float
+        self.state_values = [] #float
+        self.logprobability = [] #float
+        self.gamma = gamma
+        self.pointer, self.trajectory_start = 0, 0
+    def add(self, obs,action, reward, logprob):
+        self.states.append(obs)
+        self.actions.append(action)
+        self.rewards.append(rewards)
+        self.logprob.append(logprob)
+        self.pointer += 1
+    def normalize_adv(self):
+        advnp = np.array(self.advantages)
+        mean = np.mean(advnp)
+        std = np.std(advnp)
+        normalized = np.array([(adv-mean)/std for adv in advnp])
+        return normalized
+    def finish_eps(self):
+        rewards = self.rewards[self.trajectory_start,self.pointer]
+        values = self.state_values[self.trajectory_start,self.pointer]
+        temp_dif = rewards[0:-1] + values[1:]*self.gamma - values[0:-1]
+        ## calculate 
+        cum_rewards = [0 for i in range(len(rewards))]
+        cum_advantages = [0 for i in range(len(temp_dif))]
+        for j in reversed(range(len(rewards))):
+            if j+1 < reward_len:
+                cum_rewards[j] = rewards[j] + (cum_rewards[j+1]*self.gamma)
+            else:
+                cum_rewards[j] = rewards[j]
+        for j in reversed(range(len(rewards))):
+            if j+1 < reward_len:
+                cum_advantages[j] = temp_dif[j] + (cum_advantages[j+1]*self.gamma)
+            else:
+                cum_advantages[j] = temp_dif[j]
+        self.advantages += cum_advantages
+        self.cum_returns += cum_rewards
+    def get_everything(self):
+        normalized_adv = self.normalizeadv()
+        return (normalized_adv,np.array(self.states),np.array(self.actions), np.array(self.cum_returns),np.array(self.logprobability))
+        
+
+
+         
+       
+
 
 #actor_func = ActorNet().to(device)
 #value_func = ValueNet().to(device)
 
 def main():
+
+    #define hyperparameters here
+    batch_size = 20
+    gamma = 0.99
 
     register(
             id='multigrid-collect-v0',
@@ -72,39 +127,44 @@ def main():
         )
     env = gym.make('multigrid-collect-v0')
 
-    obs = env.reset()
+    
     actnet1 = ActorNet(5).to(device)
     critnet1 = ValueNet(5).to(device)
     actnet2 = ActorNet(5).to(device)
     critnet2 = ValueNet(5).to(device)
 
 
-    nb_agents = len(env.agents)
+    for batchnum in range(batch_size):
+        buffer1 = Buffer(gamma)
+        buffer2 = Buffer(gamma)
+        nb_agents = len(env.agents)
+        obs = env.reset()
+        while True:
+            env.render(mode='human', highlight=True)
+            #time.sleep(0.1)
 
-    while True:
-        env.render(mode='human', highlight=True)
-        #time.sleep(0.1)
-
-        newobs = [pruneobs(agent) for agent in obs] ##use newobs
-        newobs[1] = np.transpose(newobs[1], (2, 0, 1))
-        newobs[2] = np.transpose(newobs[2], (2, 0, 1))
+            newobs = [pruneobs(agent) for agent in obs] ##use newobs
+            newobs[1] = np.transpose(newobs[1], (2, 0, 1))
+            newobs[2] = np.transpose(newobs[2], (2, 0, 1))
         
         
 
 
 
-# Convert to a PyTorch tensor
-        ac_of_adv = env.action_space.sample()
-        ac_of_p1 = actnet1.sample(newobs[1])
-        print(f'ac_of_p1{ac_of_p1}')
-        ac_of_p2 = actnet2.sample(newobs[2])
-        ac = [ac_of_adv, ac_of_p1,ac_of_p2]
-        obs, _, done, _ = env.step(ac)
+            # Convert to a PyTorch tensor
+            ac_of_adv = env.action_space.sample()
+            ac_of_p1 = actnet1.sample(newobs[1])
+            print(f'ac_of_p1{ac_of_p1}')
+            ac_of_p2 = actnet2.sample(newobs[2])
+            ac = [ac_of_adv, ac_of_p1,ac_of_p2]
+            obs, rewards, done, _ = env.step(ac)
+        
+
       
        
 
-        if done:
-            break
+            if done:
+                break
 
 if __name__ == "__main__":
     main()
