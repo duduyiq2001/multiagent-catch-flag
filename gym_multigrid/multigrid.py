@@ -1109,7 +1109,7 @@ class MultiGridEnv(gym.Env):
         Generate random integer in [low,high[
         """
         num = self.np_random.randint(low, high)
-        print(f'random num')
+        #print(f'random num')
         return num
 
     def _rand_float(self, low, high):
@@ -1314,12 +1314,12 @@ class MultiGridEnv(gym.Env):
                         self._reward(i, rewards, 1) #rewarding the agent i 
                     elif fwd_cell.type == 'ball':
                         #here we can define rewards
-                        print("at BALLLLLLLLLLLLLLLLL")
+                        #print("at BALLLLLLLLLLLLLLLLL")
                         # set the overlap with a box of agent's color
                         self.grid.set(*fwd_pos, Box(self.world,self.agents[i].color,self.agents[i], fwd_cell))
                         if cur_cell.type == "box":
                             self.grid.set(*cur_pos,cur_cell.get_ball())
-                            print("left ball")
+                            #print("left ball")
                             #time.sleep(5)
                         else:  
                             self.grid.set(*self.agents[i].pos, None)
@@ -1334,7 +1334,7 @@ class MultiGridEnv(gym.Env):
                     self.grid.set(*fwd_pos, self.agents[i])
                     if cur_cell.type == "box":
                         self.grid.set(*cur_pos,cur_cell.get_ball())
-                        print("left ball")
+                        #print("left ball")
                         #time.sleep(5)
                     else:
                         self.grid.set(*self.agents[i].pos, None)
@@ -1353,11 +1353,11 @@ class MultiGridEnv(gym.Env):
                         self._reward(i, rewards, 1) #rewarding the agent i 
                     elif fwd_cell.type == 'ball':
                         #here we can define rewards
-                        print("at BALLLLLLLLLLLLLLLLL")
+                        #print("at BALLLLLLLLLLLLLLLLL")
                         self.grid.set(*fwd_pos, Box(self.world,self.agents[i].color,self.agents[i], fwd_cell))
                         if cur_cell.type == "box":
                             self.grid.set(*cur_pos,cur_cell.get_ball())
-                            print("left ball")
+                            #print("left ball")
                             #time.sleep(5)
                         else:  
                             self.grid.set(*self.agents[i].pos, None)
@@ -1372,7 +1372,7 @@ class MultiGridEnv(gym.Env):
                     self.grid.set(*fwd_pos, self.agents[i])
                     if cur_cell.type == "box":
                         self.grid.set(*cur_pos,cur_cell.get_ball())
-                        print("left ball")
+                        #print("left ball")
                         #time.sleep(5)
                     else:
                         self.grid.set(*self.agents[i].pos, None)
@@ -1388,11 +1388,11 @@ class MultiGridEnv(gym.Env):
                         self._reward(i, rewards, 1) #rewarding the agent i 
                     elif fwd_cell.type == 'ball':
                         #here we can define rewards
-                        print("at BALLLLLLLLLLLLLLLLL")
+                        #print("at BALLLLLLLLLLLLLLLLL")
                         self.grid.set(*fwd_pos, Box(self.world,self.agents[i].color,self.agents[i], fwd_cell))
                         if cur_cell.type == "box":
                             self.grid.set(*cur_pos,cur_cell.get_ball())
-                            print("left ball")
+                            #print("left ball")
                             #time.sleep(5)
                         else:  
                             self.grid.set(*self.agents[i].pos, None)
@@ -1407,7 +1407,7 @@ class MultiGridEnv(gym.Env):
                     self.grid.set(*fwd_pos, self.agents[i]) ##setting this to a list of two world objects, aka agent and ball
                     if cur_cell.type == "box":
                         self.grid.set(*cur_pos,cur_cell.get_ball())
-                        print("left ball")
+                        #print("left ball")
                         #time.sleep(5)
                     else:
                         self.grid.set(*self.agents[i].pos, None)

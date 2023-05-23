@@ -65,7 +65,10 @@ class CollectGameEnv(MultiGridEnv):
         # Randomize the player start position and orientation
         for a in self.agents:
             self.place_agent(a)
-
+    def reset(self):
+        obs = super().reset()
+        self.donedone = False
+        return obs
 
     def _reward(self, i, rewards, reward=1):
         """
@@ -73,12 +76,12 @@ class CollectGameEnv(MultiGridEnv):
         """
         for j,a in enumerate(self.agents):
             if a.index==i:
-                rewards[j]+=reward
-                print(f'team {a.index} rewarded')
+                rewards[j]+=reward        
+                #print(f'team {a.index} rewarded')
             if self.zero_sum:
                 if a.index!=i:
                     rewards[j] -= reward
-                    print(f'team {a.index} punished')
+                    #print(f'team {a.index} punished')
 
     def _handle_pickup(self, i, rewards, cur_pos, cur_cell): ##mode this function to disallow picking up opposing team's flag
         #print("efmfelfm")
@@ -95,7 +98,7 @@ class CollectGameEnv(MultiGridEnv):
                     cur_cell.remove_ball()
                     self.grid.set(*cur_pos, cur_cell.get_agent())
                     team = self.agents[i].index
-                    print(f'team {team} pick up')
+                    #print(f'team {team} pick up')
                     if self.agents[i].index == 2:
                         self.remaining_ball -= 1  
                         #print(f'self.remaining_ball {self.remaining_ball}')          
@@ -107,7 +110,8 @@ class CollectGameEnv(MultiGridEnv):
                         self._reward(team, rewards, 40)
                         self.donedone = True
                 else:
-                    print(f'agent {i} illegal pick up')
+                    kkk = "good"
+                    #print(f'agent {i} illegal pick up')
 
     def _handle_drop(self, i, rewards, fwd_pos, fwd_cell):
         pass
