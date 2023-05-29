@@ -68,6 +68,7 @@ class CollectGameEnv(MultiGridEnv):
     def reset(self):
         obs = super().reset()
         self.donedone = False
+        self.remaining_ball = 2
         return obs
 
     def _reward(self, i, rewards, reward=1):

@@ -10,6 +10,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 sys.path.append(r"../")
 class ActorNet(nn.Module):
     def __init__(self,action_size):
@@ -21,8 +22,8 @@ class ActorNet(nn.Module):
         nn.Linear(32*3*3, 64),
         nn.Linear(64, action_size),)
     def forward(self, x):
-        x = torch.from_numpy(x).float().unsqueeze(0)
-        x = x.clone().detach().to(device) #dimension might not work
+        #x = torch.from_numpy(x).float().unsqueeze(0).to(device)
+        #x = x.clone().detach().to(device) #dimension might not work
         #print(x.shape)
         return self.network(x)
     def sample(self, x):
@@ -33,15 +34,43 @@ class ActorNet(nn.Module):
         #print(logprobs)
         a = torch.multinomial(probs, num_samples=1)
         #print(a)
-
         return (a.tolist()[0],logprobs[a.tolist()[0]])
-  
+    def get_logprob(self,states,actions):
+        logits = self.network(states)
+        probs = F.softmax(logits)
+        #print(f'probs{probs}')
+        logprobs = torch.log(probs)
+        #print(logprobs.type)
+        associated_probs = logprobs[torch.arange(logprobs.size(0)), actions]
+        
+        #print(f'logprobs {associated_probs}')
+        return associated_probs
+    def train_policy(self,obs, actions, logprobabilities, advantages,optimizer,clip_ratio):
+        #empty the optimzier
+        optimizer.zero_grad()
+        # calcualtion for policy los
+        post_prob = self.get_logprob(obs, actions)
+        ratio = torch.exp(
+            post_prob
+            - logprobabilities
+        )
+        min_advantage = torch.where(
+            advantages > 0,
+            (1 + clip_ratio) * advantages,
+            (1 - clip_ratio) * advantages,
+        )
 
+        policy_loss = -torch.mean(
+            torch.min(ratio * advantages, min_advantage)
+        )
+        policy_loss.backward()
+        optimizer.step() 
 
-
-
-
-
+        kl = torch.mean(
+            logprobabilities
+            - self.get_logprob(obs, actions)
+        )
+        return kl.sum()
 class ValueNet(nn.Module):
     def __init__(self):
         super().__init__()
@@ -52,9 +81,18 @@ class ValueNet(nn.Module):
         nn.Linear(32*3*3, 64),
         nn.Linear(64, 1),)
     def forward(self, x):
-        x = torch.from_numpy(x).unsqueeze(0).float()
-        x = x.clone().detach().to(device) 
-        return self.network(x)[0][0].item()
+        #x = torch.from_numpy(x).unsqueeze(0).float().to(device)
+        #x = x.clone().detach().to(device) 
+        return self.network(x)[0][0]
+    def train(self,cum_rewards,states,optimizer):
+        values = self.network(states)
+        #print(values)
+        optimizer.zero_grad()
+        vf_loss = torch.mean((cum_rewards - values) ** 2)
+        vf_loss.sum().backward()
+        optimizer.step()
+
+
 def pruneobs(obs):
     newarray = np.zeros(shape=(7, 7, 4), dtype=np.uint8)
     for a in range(7):
@@ -83,10 +121,10 @@ class Buffer:
         self.logprob.append(logprob)
         self.pointer += 1
     def normalize_adv(self):
-        advnp = np.array(self.advantages)
-        mean = np.mean(advnp)
-        std = np.std(advnp)
-        normalized = np.array([(adv-mean)/std for adv in advnp])
+        adv_tensor = torch.tensor(self.advantages, dtype=torch.float32).to(device)
+        mean = torch.mean(adv_tensor)
+        std = torch.std(adv_tensor)
+        normalized = (adv_tensor - mean) / std
         return normalized
     def finish_eps(self,lastvalue):
         rewards = self.rewards[self.trajectory_start:self.pointer] +[lastvalue]
@@ -111,25 +149,27 @@ class Buffer:
                 cum_advantages[j] = temp_dif[j]
         self.advantages += cum_advantages
         self.cum_returns += cum_rewards
+        self.trajectory_start = self.pointer
     def get_everything(self):
-        normalized_adv = self.normalizeadv()
-        return (normalized_adv,np.array(self.states),np.array(self.actions), np.array(self.cum_returns),np.array(self.logprob))
-        
-
-
-         
-       
-
-
-#actor_func = ActorNet().to(device)
-#value_func = ValueNet().to(device)
-
+        normalized_adv = self.normalize_adv()
+        states_tensor = torch.tensor(self.states, dtype=torch.float32).to(device)
+        actions_tensor = torch.tensor(self.actions, dtype=torch.int64).to(device)
+        cum_returns_tensor = torch.tensor(self.cum_returns, dtype=torch.float32).to(device)
+        logprob_tensor = torch.tensor(self.logprob, dtype=torch.float32).to(device)
+        state_values_tensor = torch.tensor(self.state_values, dtype=torch.float32).to(device)
+        return (normalized_adv,states_tensor,actions_tensor, cum_returns_tensor,logprob_tensor,state_values_tensor)
+        # adv, states, actions,cum_returns,logrobs
 def main():
-
+    torch.autograd.set_detect_anomaly(True)
     #define hyperparameters here
-    batch_size = 20
+    batch_size = 5 ## 20 times 300 = 6000 episodes
     gamma = 0.99
+    epoch = 300
+    train_iter = 1
+    clip_ratio = 0.2
 
+
+    ###
     register(
             id='multigrid-collect-v0',
             entry_point='gym_multigrid.envs:CollectGame4HEnv10x10N2',
@@ -141,67 +181,92 @@ def main():
     critnet1 = ValueNet().to(device)
     actnet2 = ActorNet(5).to(device)
     critnet2 = ValueNet().to(device)
-
-
-    for batchstep in range(batch_size):
+    ### set up buffers
+    
+    nb_agents = len(env.agents)
+    eps_return1 = []
+    eps_return2 = []
+    eps_steps = []
+    opt1act = torch.optim.AdamW(actnet1.parameters(), lr=0.1)
+    opt2act = torch.optim.AdamW(actnet2.parameters(), lr=0.1)
+    opt1val = torch.optim.AdamW(critnet1.parameters(), lr=0.1)
+    opt2val = torch.optim.AdamW(critnet2.parameters(), lr=0.1)
+    for i in range(epoch):
         buffer1 = Buffer(gamma)
         buffer2 = Buffer(gamma)
-        nb_agents = len(env.agents)
-        obs = env.reset()
-        eps_return1 = []
-        eps_return2 = []
-        eps_steps = []
-        sum_reward1 = 0
-        sum_reward2 = 0
-        steps = 0
-        while True:
-            
-            #env.render(mode='human', highlight=True)
-            #time.sleep(0.1)
-
-            newobs = [pruneobs(agent) for agent in obs] ##use newobs
-            newobs[1] = np.transpose(newobs[1], (2, 0, 1))
-            newobs[2] = np.transpose(newobs[2], (2, 0, 1))
-            value1 = critnet1.forward(newobs[1])
-            value2 = critnet2.forward(newobs[2])
-            #print(f'value {value1} {value1.type}')
-
-
-            # Convert to a PyTorch tensor
-            ac_of_adv = env.action_space.sample()
-            ac_of_p1,logprob1 = actnet1.sample(newobs[1])
-
-            #print(f'ac_of_p1{ac_of_p1} {logprob1}')
-            ac_of_p2,logprob2 = actnet2.sample(newobs[2])
-            ac = [ac_of_adv, ac_of_p1,ac_of_p2]
-            obs, rewards, done, _ = env.step(ac)
-            sum_reward1 += rewards[1]
-            sum_reward2 += rewards[2]
-            steps += 1
-
-
-            buffer1.add(newobs[1],ac_of_p1,rewards[1],value1,logprob1) 
-            buffer2.add(newobs[2],ac_of_p2,rewards[2],value2,logprob2) 
-            #print(buffer1.state_values)      
-            if done:
+        for batchstep in range(batch_size):
+            torch.autograd.set_detect_anomaly(True)
+            obs = env.reset()
+            sum_reward1 = 0
+            sum_reward2 = 0
+            steps = 0
+            while True:          
+                #env.render(mode='human', highlight=True)
+                #time.sleep(0.1)
                 newobs = [pruneobs(agent) for agent in obs] ##use newobs
                 newobs[1] = np.transpose(newobs[1], (2, 0, 1))
                 newobs[2] = np.transpose(newobs[2], (2, 0, 1))
-                value1 = critnet1.forward(newobs[1])
-                value2 = critnet2.forward(newobs[2])
-                buffer1.finish_eps(value1)
-                buffer2.finish_eps(value2)
-                eps_return1.append(sum_reward1)
-                eps_return2.append(sum_reward2)
-                eps_steps.append(steps)
-                print(f'episode{batchstep}agent 1 return {sum_reward1} agent 2 return {sum_reward2} in {steps}')
-                break
-    print(f'batch return')
+                value1 = critnet1.forward( torch.from_numpy(newobs[1]).float().unsqueeze(0).to(device))
+                value2 = critnet2.forward(torch.from_numpy(newobs[2]).float().unsqueeze(0).to(device))
+                #print(f'value {value1} {value1.type}')
+                # Convert to a PyTorch tensor
+                ac_of_adv = env.action_space.sample()
+                ac_of_p1,logprob1 = actnet1.sample( torch.from_numpy(newobs[1]).float().unsqueeze(0).to(device))
 
-      
-       
+                #print(f'ac_of_p1{ac_of_p1} {logprob1}')
+                #return (a.tolist()[0],logprobs[a.tolist()[0]].item())
+                ac_of_p2,logprob2 = actnet2.sample( torch.from_numpy(newobs[2]).float().unsqueeze(0).to(device))
+                ac = [ac_of_adv, ac_of_p1,ac_of_p2]
+                obs, rewards, done, _ = env.step(ac)
+                sum_reward1 += rewards[1]
+                sum_reward2 += rewards[2]
+                steps += 1
+                buffer1.add(newobs[1],ac_of_p1,rewards[1],value1.item(),logprob1) 
+                buffer2.add(newobs[2],ac_of_p2,rewards[2],value2.item(),logprob2) 
+                #print(buffer1.state_values)      
+                if done:
+                    newobs = [pruneobs(agent) for agent in obs] ##use newobs
+                    newobs[1] = np.transpose(newobs[1], (2, 0, 1))
+                    newobs[2] = np.transpose(newobs[2], (2, 0, 1))
+                    value1 = critnet1.forward( torch.from_numpy(newobs[1]).float().unsqueeze(0).to(device))
+                    value2 = critnet2.forward( torch.from_numpy(newobs[2]).float().unsqueeze(0).to(device))
+                    buffer1.finish_eps(value1.item())
+                    buffer2.finish_eps(value2.item())
+                    eps_return1.append(sum_reward1)
+                    eps_return2.append(sum_reward2)
+                    eps_steps.append(steps)
+                    print(f'episode{batchstep}agent 1 return {sum_reward1} agent 2 return {sum_reward2} in {steps}')
+                    break
+        print(f'batch return')
+        # get all batch info 
+        cum_adv1, states1, actions1,cum_returns1,logprobs1,values1 = buffer1.get_everything()
+        cum_adv2, states2, actions2,cum_returns2,logprobs2,values2 = buffer2.get_everything()
 
-           
-
+        print(len(cum_adv1))
+        print(len(states1))
+        print(len(actions1))
+        print(len(cum_returns1))
+        print(len(logprobs1))
+        #convert all of them to 
+        logprobs_1 = actnet1.get_logprob(states1, actions1)
+        logprobs_2 = actnet2.get_logprob(states2, actions2)
+        #print(logprobs_2)
+        # train with 
+        torch.autograd.set_detect_anomaly(True)
+        for i in range(train_iter):
+            kl1 = actnet1.train_policy(
+            states1,actions1 , logprobs_1 , cum_adv1,opt1act,clip_ratio
+            )
+            torch.autograd.set_detect_anomaly(True)
+            kl2 = actnet2.train_policy(
+            states2,actions2 , logprobs_2, cum_adv2,opt2act,clip_ratio
+            )
+            print(f'kl divergence at iter{i} is {kl1} and {kl2}')
+        #print("cum_rewards.requires_grad: ", cum_returns1.requires_grad)
+        #print("values.requires_grad: ", values1.requires_grad)
+        for i in range(train_iter):
+            critnet1.train(cum_returns1,states1,opt1val)
+            critnet2.train(cum_returns2,states2,opt2val)
+        
 if __name__ == "__main__":
     main()
