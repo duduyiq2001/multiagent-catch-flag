@@ -18,40 +18,45 @@ import torch.optim as optim
 sys.path.append(r"../")
 
 
+def pruneobs(obs):
+    newarray = np.zeros(shape=(7, 7, 4), dtype=np.uint8)
+    for a in range(7):
+        for b in range(7):
+            #print(len(obs[a][b]))
+            newarray[a][b] = np.concatenate((obs[a][b][0:2],obs[a][b][4:6]), axis =0)
+    return newarray
+
 # Define the Q-Network
 class QNetwork(nn.Module):
-    def __init__(self, state_shape, num_actions):
+    def __init__(self, num_actions):
 
         super(QNetwork, self).__init__()
 
         self.conv = nn.Sequential(
-            nn.Conv2d(state_shape[1], 16, kernel_size=3, stride=1),
-            nn.ReLU(),
-            nn.Flatten()
+            nn.Conv2d(4, 16, kernel_size=3, stride=1),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1),
+            nn.Flatten(),
+            nn.Linear(32*3*3, 64),
+            nn.Linear(64, num_actions),
         )
 
-        conv_out_size = self._get_conv_out(state_shape[1:])
-        self.fc = nn.Sequential(
-            nn.Linear(conv_out_size, 64),
-            nn.ReLU(),
-            nn.Linear(64, num_actions)
-        )
 
-    def _get_conv_out(self, shape):
-        o = self.conv(torch.zeros(1, *shape))
-        return int(np.prod(o.size()))
+
+    # def _get_conv_out(self, shape):
+    #     o = self.conv(torch.zeros(1, *shape))
+    #     return int(np.prod(o.size()))
 
     def forward(self, x):
-        conv_out = self.conv(x)
-        q_values = self.fc(conv_out)
-        return q_values
 
+        x = self.conv(x)
+        q_values = x
+        return q_values
 # Define the DQN Agent
 class DQNAgent:
-    def __init__(self, state_shape, num_actions, lr, gamma, epsilon_max, epsilon_min, epsilon_decay, buffer_capacity, batch_size):
+    def __init__(self, num_actions, lr, gamma, epsilon_max, epsilon_min, epsilon_decay, buffer_capacity, batch_size):
         self.num_actions = num_actions
-        self.q_network = QNetwork(state_shape, num_actions)
-        self.target_network = QNetwork(state_shape, num_actions)
+        self.q_network = QNetwork( num_actions)
+        self.target_network = QNetwork( num_actions)
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
         self.loss = nn.SmoothL1Loss()
@@ -113,7 +118,7 @@ def main():
     env = gym.make('multigrid-collect-v0')
 
     # state_shape = env.observation_space.shape
-    state_shape = [1,7,7,6]
+    # state_shape = [1,7,7,4]
 
     num_actions = env.action_space.n
     lr = 0.1
@@ -124,7 +129,7 @@ def main():
     buffer_capacity = 10000
     batch_size = 32
 
-    adversary = DQNAgent(state_shape, num_actions, lr, gamma, epsilon_max, epsilon_min, epsilon_decay, buffer_capacity, batch_size)
+    adversary = DQNAgent(num_actions, lr, gamma, epsilon_max, epsilon_min, epsilon_decay, buffer_capacity, batch_size)
 
     num_episodes = 1000
     for episode in range(num_episodes):
@@ -136,20 +141,25 @@ def main():
         total_reward = 0
 
         while not done:
-            env.render(mode='human', highlight=True)
+            # env.render(mode='human', highlight=True)
+
+            newobs = [pruneobs(agent) for agent in states] ##use newobs
+            newobs[0] = np.transpose(newobs[0], (2, 0, 1))
 
             actions = []
-            for agent_id, state in enumerate(states):
-                if agent_id == 0:
-                    actions.append(adversary.select_action(state))
-                else:
-                    actions.append(env.action_space.sample())
+
+
+            # Select actions for the adversary agent only
+            actions.append(adversary.select_action(newobs[0]))
+
+            for _ in range(1, len(newobs)):
+                actions.append(env.action_space.sample())
 
             next_states, rewards, done, _ = env.step(actions)
 
-            # Buffer experiences and update only for the trained agent
+            # Buffer experiences and update only for the adversary agent
             if env.remaining_ball <= 0:
-                adversary.buffer.append((states[0], actions[0], rewards[0], next_states[0], done))
+                adversary.buffer.append((newobs[0], actions[0], rewards[0], next_states[0], done))
                 adversary.update()
                 done = True
 
@@ -159,17 +169,9 @@ def main():
         # Update the target network every few episodes
         if episode % 5 == 0:
 
-            before_update_params = [param.clone() for param in adversary.q_network.parameters()]
-
             adversary.target_network.load_state_dict(adversary.q_network.state_dict())
 
-            after_update_params = [param.clone() for param in adversary.q_network.parameters()]
-
-            # Compare the parameters
-            for param1, param2 in zip(before_update_params, after_update_params):
-                if not torch.equal(param1, param2):
-                    print("DQN parameters have changed.")
-            time.sleep(5)
+        time.sleep(5)
 
 
         print(f"Episode: {episode+1}, Total Reward: {total_reward}")
