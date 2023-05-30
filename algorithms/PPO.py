@@ -11,6 +11,7 @@ from torch.nn import functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
+time.sleep(5)
 sys.path.append(r"../")
 class ActorNet(nn.Module):
     def __init__(self,action_size):
@@ -159,6 +160,39 @@ class Buffer:
         state_values_tensor = torch.tensor(self.state_values, dtype=torch.float32).to(device)
         return (normalized_adv,states_tensor,actions_tensor, cum_returns_tensor,logprob_tensor,state_values_tensor)
         # adv, states, actions,cum_returns,logrobs
+def record_video(env,actnet1, actnet2,out_directory, fps=30):
+    """
+    Generate a replay video of the agent
+    :param env
+    :param Qtable: Qtable of our agent
+    :param out_directory
+    :param fps: how many frame per seconds (with taxi-v3 and frozenlake-v1 we
+    """
+    images = []
+    done = False
+    state = env.reset()
+    img = env.render(mode='rgb_array')
+    images.append(img)
+    counter = 0
+    while not done:
+        # Take the action (index) that have the maximum expected future reward g
+        #action, _ = policy.act(state)
+        adv = env.action_space.sample() 
+        print(counter)
+        counter +=1
+        ac_of_p1,logprob1 = actnet1.sample( torch.from_numpy(newobs[1]).float().unsqueeze(0).to(device))
+
+                #print(f'ac_of_p1{ac_of_p1} {logprob1}')
+                #return (a.tolist()[0],logprobs[a.tolist()[0]].item())
+        ac_of_p2,logprob2 = actnet2.sample( torch.from_numpy(newobs[2]).float().unsqueeze(0).to(device))
+        actions = [adv,ac_of_p1,ac_of_p2]
+        state, reward, done, info = env.step(actions) # We directly put next_stat
+        img = env.render(mode='rgb_array')
+        images.append(img)
+        imageio.mimsave(out_directory, [np.array(img) for i, img in enumerate(images)])
+        if counter >= 200:
+            break
+#record_video('./replay2.mp4')
 def main():
     torch.autograd.set_detect_anomaly(True)
     #define hyperparameters here
@@ -191,7 +225,7 @@ def main():
     opt2act = torch.optim.AdamW(actnet2.parameters(), lr=0.1)
     opt1val = torch.optim.AdamW(critnet1.parameters(), lr=0.1)
     opt2val = torch.optim.AdamW(critnet2.parameters(), lr=0.1)
-    for i in range(epoch):
+    for ep in range(epoch):
         buffer1 = Buffer(gamma)
         buffer2 = Buffer(gamma)
         for batchstep in range(batch_size):
@@ -264,9 +298,19 @@ def main():
             print(f'kl divergence at iter{i} is {kl1} and {kl2}')
         #print("cum_rewards.requires_grad: ", cum_returns1.requires_grad)
         #print("values.requires_grad: ", values1.requires_grad)
-        for i in range(train_iter):
+        for a in range(train_iter):
             critnet1.train(cum_returns1,states1,opt1val)
             critnet2.train(cum_returns2,states2,opt2val)
+        if ep%10 == 1:
+            #save model
+            torch.save(actnet1.state_dict(),f'epoch_{ep}_actnet1.pt')
+            torch.save(actnet2.state_dict(),f'epoch_{ep}_actnet2.pt')
+            torch.save(critnet1.state_dict(),f'epoch_{ep}_critnet1.pt')
+            torch.save(critnet2.state_dict(),f'epoch_{ep}_critnet2.pt')
+        if ep%10 == 0:
+            record_video(env,actnet1,actnet2,f'epoch{ep}.mp4')
+        
+
         
 if __name__ == "__main__":
     main()
