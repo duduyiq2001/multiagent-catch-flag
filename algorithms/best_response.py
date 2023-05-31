@@ -59,7 +59,7 @@ class DQNAgent:
         self.q_network = QNetwork( num_actions).to(device)
          
         self.target_network = QNetwork( num_actions).to(device)
-        self.target_network.load_state_dict(self.q_network.state_dict()).to(device)
+        self.target_network.load_state_dict(self.q_network.state_dict())
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
         self.loss = nn.SmoothL1Loss()
         self.gamma = gamma
@@ -100,10 +100,10 @@ class DQNAgent:
         q_values = q_values.gather(1, actions.unsqueeze(1)).squeeze(1).to(device)
         next_q_values = self.target_network(next_states)
         max_next_q_values = torch.max(next_q_values, dim=1)[0]
-        print(f'max_next_q_values')
+        #print(f'max_next_q_values {max_next_q_values}')
         expected_q_values = rewards + self.gamma * max_next_q_values * (~dones)   
 
-        loss = self.loss(q_values, expected_q_values)
+        loss = F.mse_loss(q_values, expected_q_values)
 
         # q_network_params_before = [param.data.clone() for param in self.q_network.parameters()]
 
@@ -159,6 +159,7 @@ def main():
             steps += 1
             # Select actions for the adversary agent only
             actions.append(adversary.select_action(newobs[0]))
+            #print(f'action selected {actions[0]}')
 
            
             actions.append(env.action_space.sample())
@@ -172,12 +173,12 @@ def main():
             adversary.buffer.append((newobs[0], actions[0], rewards[0], newobs1[0], False)) 
             if done:
                 lastobs = newobs1[0]
-                lastreward = reward[0]
+                lastreward = rewards[0]
         adversary.buffer.append((lastobs, 0, lastreward, lastobs, True)) 
         adversary.update()      
         # Update the target network every few episodes
         if episode % 5 == 0:
-            adversary.target_network.load_state_dict(adversary.q_network.state_dict()).to(device)
+            adversary.target_network.load_state_dict(adversary.q_network.state_dict())
         if episode % 100 == 1:
             torch.save(adversary.target_network.state_dict(), f'adversary{episode}.pt')
 
