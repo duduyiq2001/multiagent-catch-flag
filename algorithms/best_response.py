@@ -132,9 +132,9 @@ def main():
     # state_shape = env.observation_space.shape
     # state_shape = [1,7,7,4]
     num_actions = env.action_space.n
-    lr = 0.1
+    lr = 0.5
     gamma = 0.99
-    epsilon_max = 0.9
+    epsilon_max = 0.3
     epsilon_min = 0.01
     epsilon_decay = 500
     buffer_capacity = 10000
@@ -174,6 +174,9 @@ def main():
             if done:
                 lastobs = newobs1[0]
                 lastreward = rewards[0]
+        if(len(adversary.buffer) >buffer_capacity):
+            adversary.buffer = []
+        
         adversary.buffer.append((lastobs, 0, lastreward, lastobs, True)) 
         adversary.update()      
         # Update the target network every few episodes

@@ -216,11 +216,10 @@ def main():
     ### set up buffers
     
     nb_agents = len(env.agents)
-    eps_return1 = []
-    eps_return2 = []
+    eps_return0 = []
     eps_steps = []
-    opt0act = torch.optim.AdamW(actnet1.parameters(), lr=0.1)
-    opt0val = torch.optim.AdamW(critnet1.parameters(), lr=0.1)
+    opt0act = torch.optim.AdamW(actnet0.parameters(), lr=0.1)
+    opt0val = torch.optim.AdamW(critnet0.parameters(), lr=0.1)
     for ep in range(epoch):
         buffer0 = Buffer(gamma)
         for batchstep in range(batch_size):
@@ -233,22 +232,27 @@ def main():
                 #time.sleep(0.1)
                 newobs = [pruneobs(agent) for agent in obs] ##use newobs
                 newobs[0] = np.transpose(newobs[0], (2, 0, 1))
-                value0 = critnet1.forward( torch.from_numpy(newobs[0]).float().unsqueeze(0).to(device))
+                value0 = critnet0.forward( torch.from_numpy(newobs[0]).float().unsqueeze(0).to(device))
                 #print(f'value {value1} {value1.type}')
                 # Convert to a PyTorch tensor
-                ac_of_adv,logprob1 = actnet1.sample( torch.from_numpy(newobs[0]).float().unsqueeze(0).to(device))
+                ac_of_adv,logprob0 = actnet0.sample( torch.from_numpy(newobs[0]).float().unsqueeze(0).to(device))
               
-                ac = [ac_of_adv, 0,0]
+                ac = [ac_of_adv]
+                ac.append(nv.action_space.sample())
+                ac.append(nv.action_space.sample())
                 obs, rewards, done, _ = env.step(ac)
                 sum_reward0 += rewards[0]
               
                 steps += 1
-                buffer1.add(newobs[0],ac_of_p1,rewards[0],value0.item(),logprob1) 
+                if len(buffer0) > 10000:
+                    buffer0 = Buffer(gamma)
+
+                buffer0.add(newobs[0],ac_of_p0,rewards[0],value0.item(),logprob0) 
                 #print(buffer1.state_values)      
                 if done:
                     newobs = [pruneobs(agent) for agent in obs] ##use newobs
                     newobs[0] = np.transpose(newobs[0], (2, 0, 1))
-                    value0 = critnet1.forward( torch.from_numpy(newobs[0]).float().unsqueeze(0).to(device))                
+                    value0 = critnet0.forward( torch.from_numpy(newobs[0]).float().unsqueeze(0).to(device))                
                     buffer0.finish_eps(value0.item())
                     eps_return0.append(sum_reward0)
                     eps_steps.append(steps)
@@ -256,36 +260,30 @@ def main():
                     break
         print(f'batch return')
         # get all batch info 
-        cum_adv0, states0, actions1,cum_returns1,logprobs1,values1 = buffer0.get_everything()
+        cum_adv0, states0, actions0,cum_returns0,logprobs0,values0 = buffer0.get_everything()
 
         #convert all of them to 
-        logprobs_1 = actnet1.get_logprob(states1, actions1)
-        logprobs_2 = actnet2.get_logprob(states2, actions2)
+        logprobs_0 = actnet0.get_logprob(states0, actions0)
         #print(logprobs_2)
         # train with 
         torch.autograd.set_detect_anomaly(True)
         for i in range(train_iter):
-            kl1 = actnet1.train_policy(
-            states1,actions1 , logprobs_1 , cum_adv1,opt1act,clip_ratio
+            kl0 = actnet0.train_policy(
+            states0,actions0 , logprobs_0 , cum_adv0,opt0act,clip_ratio
             )
             torch.autograd.set_detect_anomaly(True)
-            kl2 = actnet2.train_policy(
-            states2,actions2 , logprobs_2, cum_adv2,opt2act,clip_ratio
-            )
-            print(f'kl divergence at iter{i} is {kl1} and {kl2}')
+           
+            print(f'kl divergence at iter{i} is {kl0}')
         #print("cum_rewards.requires_grad: ", cum_returns1.requires_grad)
         #print("values.requires_grad: ", values1.requires_grad)
         for a in range(train_iter):
-            critnet1.train(cum_returns1,states1,opt1val)
-            critnet2.train(cum_returns2,states2,opt2val)
+            critnet0.train(cum_returns0,states0,opt0val)
         if ep%10 == 1:
             #save model
-            torch.save(actnet1.state_dict(),f'epoch_{ep}_actnet1.pt')
-            torch.save(actnet2.state_dict(),f'epoch_{ep}_actnet2.pt')
-            torch.save(critnet1.state_dict(),f'epoch_{ep}_critnet1.pt')
-            torch.save(critnet2.state_dict(),f'epoch_{ep}_critnet2.pt')
+            torch.save(actnet0.state_dict(),f'epoch_{ep}_actnet1.pt')
+            torch.save(critnet0.state_dict(),f'epoch_{ep}_critnet1.pt')
         if ep%10 == 0:
-            record_video(env,actnet1,actnet2,f'epoch{ep}.mp4')
+            #record_video(env,actnet0,actnet2,f'epoch{ep}.mp4')
         
 
         

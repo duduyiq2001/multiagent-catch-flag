@@ -37,8 +37,8 @@ def main():
         env.render(mode='human', highlight=True)
         time.sleep(0.1)
 
-        ac = [1,0,0]
-
+        ac = [env.action_space.sample() for i in range(3)]
+              
         obs, _, done, _ = env.step(ac)
         print(obs[0])
         #print(obs)
