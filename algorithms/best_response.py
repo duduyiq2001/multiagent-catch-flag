@@ -56,9 +56,10 @@ class QNetwork(nn.Module):
 class DQNAgent:
     def __init__(self, num_actions, lr, gamma, epsilon_max, epsilon_min, epsilon_decay, buffer_capacity, batch_size):
         self.num_actions = num_actions
-        self.q_network = QNetwork( num_actions)
-        self.target_network = QNetwork( num_actions)
-        self.target_network.load_state_dict(self.q_network.state_dict())
+        self.q_network = QNetwork( num_actions).to(device)
+         
+        self.target_network = QNetwork( num_actions).to(device)
+        self.target_network.load_state_dict(self.q_network.state_dict()).to(device)
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
         self.loss = nn.SmoothL1Loss()
         self.gamma = gamma
@@ -99,6 +100,7 @@ class DQNAgent:
         q_values = q_values.gather(1, actions.unsqueeze(1)).squeeze(1).to(device)
         next_q_values = self.target_network(next_states)
         max_next_q_values = torch.max(next_q_values, dim=1)[0]
+        print(f'max_next_q_values')
         expected_q_values = rewards + self.gamma * max_next_q_values * (~dones)   
 
         loss = self.loss(q_values, expected_q_values)
@@ -136,7 +138,7 @@ def main():
     epsilon_min = 0.01
     epsilon_decay = 500
     buffer_capacity = 10000
-    batch_size = 32
+    batch_size = 200
     adversary = DQNAgent(num_actions, lr, gamma, epsilon_max, epsilon_min, epsilon_decay, buffer_capacity, batch_size)
     num_episodes = 1000
     eps_returns = []
@@ -147,6 +149,8 @@ def main():
         done = False
         total_reward = 0 
         steps = 0      
+        lastobs = []
+        lastreward = 0
         while not done:
             # env.render(mode='human', highlight=True)
             newobs = [pruneobs(agent) for agent in states] ##use newobs
@@ -156,19 +160,24 @@ def main():
             # Select actions for the adversary agent only
             actions.append(adversary.select_action(newobs[0]))
 
-            for _ in range(1, len(newobs)):
-                actions.append(env.action_space.sample())
+           
+            actions.append(env.action_space.sample())
+            actions.append(env.action_space.sample())
 
             states, rewards, done, _ = env.step(actions)
             newobs1 = [pruneobs(agent) for agent in states] ##use newobs
             newobs1[0] = np.transpose(newobs1[0], (2, 0, 1))
             # Buffer experiences and update only for the adversary agent
             total_reward += rewards[0] 
-            adversary.buffer.append((newobs[0], actions[0], rewards[0], newobs1[0], done))       
+            adversary.buffer.append((newobs[0], actions[0], rewards[0], newobs1[0], False)) 
+            if done:
+                lastobs = newobs1[0]
+                lastreward = reward[0]
+        adversary.buffer.append((lastobs, 0, lastreward, lastobs, True)) 
         adversary.update()      
         # Update the target network every few episodes
         if episode % 5 == 0:
-            adversary.target_network.load_state_dict(adversary.q_network.state_dict())
+            adversary.target_network.load_state_dict(adversary.q_network.state_dict()).to(device)
         if episode % 100 == 1:
             torch.save(adversary.target_network.state_dict(), f'adversary{episode}.pt')
 
