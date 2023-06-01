@@ -196,7 +196,7 @@ def record_video(env,actnet1, actnet2,out_directory, fps=30):
 def main():
     torch.autograd.set_detect_anomaly(True)
     #define hyperparameters here
-    batch_size = 5 ## 20 times 300 = 6000 episodes
+    batch_size = 3 ## 20 times 300 = 6000 episodes
     gamma = 0.99
     epoch = 300
     train_iter = 1
@@ -218,8 +218,8 @@ def main():
     nb_agents = len(env.agents)
     eps_return0 = []
     eps_steps = []
-    opt0act = torch.optim.AdamW(actnet0.parameters(), lr=0.1)
-    opt0val = torch.optim.AdamW(critnet0.parameters(), lr=0.1)
+    opt0act = torch.optim.AdamW(actnet0.parameters(), lr=0.5)
+    opt0val = torch.optim.AdamW(critnet0.parameters(), lr=0.5)
     for ep in range(epoch):
         buffer0 = Buffer(gamma)
         for batchstep in range(batch_size):
@@ -238,16 +238,16 @@ def main():
                 ac_of_adv,logprob0 = actnet0.sample( torch.from_numpy(newobs[0]).float().unsqueeze(0).to(device))
               
                 ac = [ac_of_adv]
-                ac.append(nv.action_space.sample())
-                ac.append(nv.action_space.sample())
+                ac.append(env.action_space.sample())
+                ac.append(env.action_space.sample())
                 obs, rewards, done, _ = env.step(ac)
                 sum_reward0 += rewards[0]
               
                 steps += 1
-                if len(buffer0) > 10000:
+                if len(buffer0.states) > 10000:
                     buffer0 = Buffer(gamma)
 
-                buffer0.add(newobs[0],ac_of_p0,rewards[0],value0.item(),logprob0) 
+                buffer0.add(newobs[0],ac_of_adv,rewards[0],value0.item(),logprob0) 
                 #print(buffer1.state_values)      
                 if done:
                     newobs = [pruneobs(agent) for agent in obs] ##use newobs
@@ -261,6 +261,7 @@ def main():
         print(f'batch return')
         # get all batch info 
         cum_adv0, states0, actions0,cum_returns0,logprobs0,values0 = buffer0.get_everything()
+        
 
         #convert all of them to 
         logprobs_0 = actnet0.get_logprob(states0, actions0)
@@ -278,14 +279,17 @@ def main():
         #print("values.requires_grad: ", values1.requires_grad)
         for a in range(train_iter):
             critnet0.train(cum_returns0,states0,opt0val)
-        if ep%10 == 1:
+        if ep%100 == 0:
             #save model
-            torch.save(actnet0.state_dict(),f'epoch_{ep}_actnet1.pt')
-            torch.save(critnet0.state_dict(),f'epoch_{ep}_critnet1.pt')
-        if ep%10 == 0:
+            torch.save(actnet0.state_dict(),f'epoch_{ep}_actnet0.pt')
+            torch.save(critnet0.state_dict(),f'epoch_{ep}_critnet0.pt')
+        if ep%20 == 10:
+            print(f'current return {sum(eps_return0[-10:])/10}')
+            print(f'current steps {sum(eps_steps[-10:])/10}')
+
+        #if ep%10 == 0:
             #record_video(env,actnet0,actnet2,f'epoch{ep}.mp4')
         
 
-        
 if __name__ == "__main__":
-    main()
+  main()
