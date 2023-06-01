@@ -132,15 +132,15 @@ def main():
     # state_shape = env.observation_space.shape
     # state_shape = [1,7,7,4]
     num_actions = env.action_space.n
-    lr = 0.5
+    lr = 0.5 #improved learning rate
     gamma = 0.99
-    epsilon_max = 0.3
+    epsilon_max = 0.3 #decreased ep
     epsilon_min = 0.01
     epsilon_decay = 500
     buffer_capacity = 10000
     batch_size = 200
     adversary = DQNAgent(num_actions, lr, gamma, epsilon_max, epsilon_min, epsilon_decay, buffer_capacity, batch_size)
-    num_episodes = 1000
+    num_episodes = 10000
     eps_returns = []
     eps_step =[]
     for episode in range(num_episodes):  

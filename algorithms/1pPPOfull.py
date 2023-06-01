@@ -11,7 +11,7 @@ from torch.nn import functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
-time.sleep(5)
+#time.sleep(5)
 sys.path.append(r"../")
 class ActorNet(nn.Module):
     def __init__(self,action_size):
@@ -20,7 +20,7 @@ class ActorNet(nn.Module):
         nn.Conv2d(4, 16, kernel_size=3, stride=1),
         nn.Conv2d(16, 32, kernel_size=3, stride=1),
         nn.Flatten(),
-        nn.Linear(32*3*3, 64),
+        nn.Linear(32*6*6, 64),
         nn.Linear(64, action_size),)
     def forward(self, x):
         #x = torch.from_numpy(x).float().unsqueeze(0).to(device)
@@ -79,7 +79,7 @@ class ValueNet(nn.Module):
         nn.Conv2d(4, 16, kernel_size=3, stride=1),
         nn.Conv2d(16, 32, kernel_size=3, stride=1),
         nn.Flatten(),
-        nn.Linear(32*3*3, 64),
+        nn.Linear(32*6*6, 64),
         nn.Linear(64, 1),)
     def forward(self, x):
         #x = torch.from_numpy(x).unsqueeze(0).float().to(device)
@@ -95,9 +95,9 @@ class ValueNet(nn.Module):
 
 
 def pruneobs(obs):
-    newarray = np.zeros(shape=(7, 7, 4), dtype=np.uint8)
-    for a in range(7):
-        for b in range(7):
+    newarray = np.zeros(shape=(10, 10, 4), dtype=np.uint8)
+    for a in range(10):
+        for b in range(10):
             #print(len(obs[a][b]))
             newarray[a][b] = np.concatenate((obs[a][b][0:2],obs[a][b][4:6]), axis =0)
     return newarray
@@ -198,7 +198,7 @@ def main():
     #define hyperparameters here
     batch_size = 3 ## 20 times 300 = 6000 episodes
     gamma = 0.99
-    epoch = 30000
+    epoch = 300
     train_iter = 1
     clip_ratio = 0.2
 
@@ -206,7 +206,7 @@ def main():
     ###
     register(
             id='multigrid-collect-v0',
-            entry_point='gym_multigrid.envs:CollectGame4HEnv10x10N2',
+            entry_point='gym_multigrid.envs:CollectGamefullobs',
         )
     env = gym.make('multigrid-collect-v0')
 
@@ -225,13 +225,16 @@ def main():
         for batchstep in range(batch_size):
             torch.autograd.set_detect_anomaly(True)
             obs = env.reset()
+            #print(obs[0])
             sum_reward0 = 0
             steps = 0
             while True:          
-                #env.render(mode='human', highlight=True)
+                env.render(mode='human', highlight=True)
                 #time.sleep(0.1)
                 newobs = [pruneobs(agent) for agent in obs] ##use newobs
+               
                 newobs[0] = np.transpose(newobs[0], (2, 0, 1))
+                #print(newobs[0])
                 value0 = critnet0.forward( torch.from_numpy(newobs[0]).float().unsqueeze(0).to(device))
                 #print(f'value {value1} {value1.type}')
                 # Convert to a PyTorch tensor

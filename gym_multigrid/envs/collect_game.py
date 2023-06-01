@@ -134,4 +134,14 @@ class CollectGame4HEnv10x10N2(CollectGameEnv):
         balls_index=[1,2,2],
         balls_reward=[1,1,1],
         zero_sum=True)
+class CollectGamefullobs(CollectGameEnv):
+    def __init__(self):
+        super().__init__(size=10,
+        num_balls=[3],
+        agents_index = [1,2,2],
+        balls_index=[1,2,2],
+        balls_reward=[1,1,1],
+         
+        zero_sum=True)
+        self.partial_obs = False
 
