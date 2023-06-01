@@ -198,7 +198,7 @@ def main():
     #define hyperparameters here
     batch_size = 3 ## 20 times 300 = 6000 episodes
     gamma = 0.99
-    epoch = 300
+    epoch = 30000
     train_iter = 1
     clip_ratio = 0.2
 
