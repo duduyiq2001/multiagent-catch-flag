@@ -229,7 +229,7 @@ def main():
             sum_reward0 = 0
             steps = 0
             while True:          
-                env.render(mode='human', highlight=True)
+                #env.render(mode='human', highlight=True)
                 #time.sleep(0.1)
                 newobs = [pruneobs(agent) for agent in obs] ##use newobs
                
