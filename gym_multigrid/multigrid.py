@@ -987,6 +987,7 @@ class MultiGridEnv(gym.Env):
         # To keep the same grid for each episode, call env.seed() with
         # the same seed before calling env.reset()
         self._gen_grid(self.width, self.height)
+        print("reset called")
 
         # These fields should be defined by _gen_grid
         for a in self.agents:
@@ -1006,6 +1007,7 @@ class MultiGridEnv(gym.Env):
         else:
             obs = [self.grid.encode_for_agents(self.world,self.agents[i].pos) for i in range(len(self.agents))]
         obs=[self.objects.normalize_obs*ob for ob in obs]
+        
         return obs
 
     def seed(self, seed=1337):
@@ -1220,7 +1222,7 @@ class MultiGridEnv(gym.Env):
             break
 
         self.grid.set(*pos, obj)
-
+        print(obj.type,pos)
         if obj is not None:
             obj.init_pos = pos
             obj.cur_pos = pos
@@ -1306,8 +1308,10 @@ class MultiGridEnv(gym.Env):
                 
                 #print(f'agent{i} left')
                 self.agents[i].dir -= 1
+                
                 if self.agents[i].dir < 0:
                     self.agents[i].dir += 4
+                '''
                 #print(f'agent{i} Forward')
                 if fwd_cell is not None:
                     if fwd_cell.type == 'goal':
@@ -1341,11 +1345,14 @@ class MultiGridEnv(gym.Env):
                         self.grid.set(*self.agents[i].pos, None)
                     self.agents[i].pos = fwd_pos
                 self._handle_special_moves(i, rewards, fwd_pos, fwd_cell)
+                '''
 
             # Rotate right
             elif actions[i] == self.actions.right:
                 #print(f'agent{i} right')
+                
                 self.agents[i].dir = (self.agents[i].dir + 1) % 4
+                '''
                 ####### move forward too 
                 #print(f'agent{i} Forward')
                 if fwd_cell is not None:
@@ -1379,7 +1386,7 @@ class MultiGridEnv(gym.Env):
                         self.grid.set(*self.agents[i].pos, None)
                     self.agents[i].pos = fwd_pos
                 self._handle_special_moves(i, rewards, fwd_pos, fwd_cell)
-
+            '''
             # Move forward
             elif actions[i] == self.actions.forward:
                 #print(f'agent{i} Forward')
@@ -1448,8 +1455,11 @@ class MultiGridEnv(gym.Env):
             obs = [self.grid.encode_for_agents(self.world,self.agents[i].pos) for i in range(len(actions))]
 
         obs=[self.objects.normalize_obs*ob for ob in obs]
+        info = [thing.cur_pos for thing in self.things[0:3]]
+        info += [thing.pos for thing in self.things[3:6]]
 
-        return obs, rewards, done, {}
+
+        return info, rewards, done, {}
 
     def gen_obs_grid(self):
         """

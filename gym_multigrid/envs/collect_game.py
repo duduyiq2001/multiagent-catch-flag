@@ -28,6 +28,7 @@ class CollectGameEnv(MultiGridEnv):
         self.donedone = False
         self.remaining_ball = 2
         self.world = World
+        self.things = []
       
 
         agents = []
@@ -64,16 +65,24 @@ class CollectGameEnv(MultiGridEnv):
         for index, reward in zip(self.balls_index, self.balls_reward):
             
             #print(index)
-            self.place_obj(Ball(self.world, index, reward))
+            aball = Ball(self.world, index, reward)
+            self.place_obj(aball)
+            self.things.append(aball)
+            
 
         # Randomize the player start position and orientation
         for a in self.agents:
             self.place_agent(a)
+            self.things.append(a)
     def reset(self):
+        self.things = []
         obs = super().reset()
         self.donedone = False
         self.remaining_ball = 2
-        return obs
+      
+        info = [thing.cur_pos for thing in self.things[0:3]]
+        info += [thing.pos for thing in self.things[3:6]]
+        return info
 
     def _reward(self, i, rewards, reward=1):
         """
