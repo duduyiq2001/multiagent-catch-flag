@@ -964,7 +964,7 @@ class MultiGridEnv(gym.Env):
         self.ac_dim = self.action_space.n
 
         # Range of possible rewards
-        self.reward_range = (0, 1)
+        self.reward_range = (-40, 20)
 
         # Window to use for human rendering mode
         self.window = None
