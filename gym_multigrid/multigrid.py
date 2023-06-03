@@ -987,7 +987,7 @@ class MultiGridEnv(gym.Env):
         # To keep the same grid for each episode, call env.seed() with
         # the same seed before calling env.reset()
         self._gen_grid(self.width, self.height)
-        print("reset called")
+        #print("reset called")
 
         # These fields should be defined by _gen_grid
         for a in self.agents:
@@ -1176,7 +1176,8 @@ class MultiGridEnv(gym.Env):
                   top=None,
                   size=None,
                   reject_fn=None,
-                  max_tries=math.inf
+                  max_tries=math.inf,
+                  thepos=None
                   ):
         """
         Place an object at an empty position in the grid
@@ -1195,34 +1196,37 @@ class MultiGridEnv(gym.Env):
             size = (self.grid.width, self.grid.height)
 
         num_tries = 0
+        if thepos == None:
 
-        while True:
-            # This is to handle with rare cases where rejection sampling
-            # gets stuck in an infinite loop
-            if num_tries > max_tries:
-                raise RecursionError('rejection sampling failed in place_obj')
+            while True:
+                # This is to handle with rare cases where rejection sampling
+                # gets stuck in an infinite loop
+                if num_tries > max_tries:
+                    raise RecursionError('rejection sampling failed in place_obj')
 
-            num_tries += 1
-            #posgen
-            pos = np.array((
-                self._rand_int(top[0], min(top[0] + size[0], self.grid.width)),
-                self._rand_int(top[1], min(top[1] + size[1], self.grid.height))
-            ))
-            #print(pos)
+                num_tries += 1
+                #posgen
+                pos = np.array((
+                    self._rand_int(top[0], min(top[0] + size[0], self.grid.width)),
+                    self._rand_int(top[1], min(top[1] + size[1], self.grid.height))
+                ))
+                #print(pos)
 
-            # Don't place the object on top of another object
-            if self.grid.get(*pos) != None:
-                continue
+                # Don't place the object on top of another object
+                if self.grid.get(*pos) != None:
+                    continue
 
-            # Check if there is a filtering criterion
+                # Check if there is a filtering criterion
 
-            if reject_fn and reject_fn(self, pos):
-                continue
+                if reject_fn and reject_fn(self, pos):
+                    continue
 
-            break
+                break
+        else:
+            pos = thepos
 
         self.grid.set(*pos, obj)
-        print(obj.type,pos)
+        #print(obj.type,pos)
         if obj is not None:
             obj.init_pos = pos
             obj.cur_pos = pos
@@ -1244,14 +1248,15 @@ class MultiGridEnv(gym.Env):
             top=None,
             size=None,
             rand_dir=True,
-            max_tries=math.inf
+            max_tries=math.inf,
+            thepos =None
     ):
         """
         Set the agent's starting point at an empty position in the grid
         """
 
         agent.pos = None
-        pos = self.place_obj(agent, top, size, max_tries=max_tries)
+        pos = self.place_obj(agent, top, size, max_tries=max_tries,thepos=thepos)
         agent.pos = pos
         agent.init_pos = pos
 

@@ -16,16 +16,16 @@ class SingleAgentWrapper(gym.Env):
     def __init__(self,superenv):
         self.superenv = superenv
         self.action_space = self.superenv.action_space
-        self.observation_space = self.superenv.observation_space
+        self.observation_space = gym.spaces.Box(low=0, high=8, shape=(12,), dtype=np.int32)
     def step(self, action):
         actions = [action]
-        actions.append(self.superenv.action_space.sample())
-        actions.append(self.superenv.action_space.sample())
+        actions.append(0)
+        actions.append(0)
         obs, rewards, done, info = self.superenv.step(actions)
-        return obs[0],rewards[0], done, info
+        return np.array(obs).flatten(),rewards[0], done, info
 
     def reset(self):
-        return self.superenv.reset()[0]
+        return np.array(self.superenv.reset()).flatten()
 
 
 register(
@@ -35,6 +35,6 @@ register(
 multienv = gym.make('multigrid-collect-v0')
 env = SingleAgentWrapper(multienv)
 check_env(env)
-model = DQN(policy="MlpPolicy", env=env, verbose=1,learning_rate=0.5,train_freq=(3,"episode"),batch_size=100,gamma=0.7,exploration_initial_eps=0.2,exploration_final_eps=0.01,stats_window_size=20,buffer_size=10000,gradient_steps=30)
-model.learn(total_timesteps=300000,progress_bar=True,log_interval=20)
+model = DQN(policy="MlpPolicy", env=env, verbose=1,learning_rate=0.1,train_freq=(1,"episode"),batch_size=100,gamma=0.7,exploration_initial_eps=0.7,exploration_final_eps=0.1,stats_window_size=20,buffer_size=1000,gradient_steps=5)
+model.learn(total_timesteps=300000,progress_bar=True,log_interval=5)
 model.save("bsdpnfulladv")

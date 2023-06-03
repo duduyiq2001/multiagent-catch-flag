@@ -61,19 +61,37 @@ class CollectGameEnv(MultiGridEnv):
         self.grid.vert_wall(self.world, width-1, 0)
 
 
-        
+        counter1 = 0
         for index, reward in zip(self.balls_index, self.balls_reward):
             
             #print(index)
-            aball = Ball(self.world, index, reward)
-            self.place_obj(aball)
+            if counter1 == 0:
+                aball = Ball(self.world, index, reward)
+                self.place_obj(aball)
+            else:
+                if counter1 == 1:
+                    aball = Ball(self.world, index, reward)
+                    self.place_obj(aball,thepos=[1,8])
+                else:
+                    aball = Ball(self.world, index, reward)
+                    self.place_obj(aball,thepos=[8,1])
+            
             self.things.append(aball)
+            counter1 +=1
             
 
         # Randomize the player start position and orientation
+        counter2 = 0
         for a in self.agents:
-            self.place_agent(a)
+            if counter2 == 0:
+                self.place_agent(a)
+            else:
+                if counter2 == 1:
+                    self.place_agent(a,thepos =[5,5])
+                else:
+                    self.place_agent(a,thepos =[5,6])
             self.things.append(a)
+            counter2 += 1
     def reset(self):
         self.things = []
         obs = super().reset()

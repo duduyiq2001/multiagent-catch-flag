@@ -16,7 +16,7 @@ class SingleAgentWrapper(gym.Env):
     def __init__(self,superenv):
         self.superenv = superenv
         self.action_space = self.superenv.action_space
-        self.observation_space = self.superenv.observation_space
+        self.observation_space = gym.spaces.Box(low=0, high=8, shape=(12,), dtype=np.int32)
     def step(self, action):
         actions = [action]
         actions.append(self.superenv.action_space.sample())
