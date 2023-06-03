@@ -16,16 +16,16 @@ class SingleAgentWrapper(gym.Env):
     def __init__(self,superenv):
         self.superenv = superenv
         self.action_space = self.superenv.action_space
-        self.observation_space = gym.spaces.Box(low=0, high=8, shape=(12,), dtype=np.int32)
+        self.observation_space = gym.spaces.Box(low=0, high=8, shape=(12,), dtype=np.float32)
     def step(self, action):
         actions = [action]
         actions.append(0)
         actions.append(0)
         obs, rewards, done, info = self.superenv.step(actions)
-        return np.array(obs).flatten(),rewards[0], done, info
+        return np.array(obs).astype(np.float32).flatten(),rewards[0], done, info
 
     def reset(self):
-        return np.array(self.superenv.reset()).flatten()
+        return np.array(self.superenv.reset()).astype(np.float32).flatten()
 
 
 register(
@@ -35,6 +35,8 @@ register(
 multienv = gym.make('multigrid-collect-v0')
 env = SingleAgentWrapper(multienv)
 check_env(env)
-model = DQN(policy="MlpPolicy", env=env, verbose=1,learning_rate=0.1,train_freq=(1,"episode"),batch_size=100,gamma=0.7,exploration_initial_eps=0.7,exploration_final_eps=0.1,stats_window_size=20,buffer_size=1000,gradient_steps=5)
-model.learn(total_timesteps=300000,progress_bar=True,log_interval=5)
-model.save("bsdpnfulladv")
+#model = DQN(policy="MlpPolicy", env=env, verbose=1,tensorboard_log= "./")
+model = DQN.load("bsdpnfulladv", env=env)
+model.policy_kwargs = dict(eps_start=0.05, eps_end=0.03)
+model.learn(total_timesteps=600000,progress_bar=True,log_interval=5)
+model.save("bsdpnfulladv1")

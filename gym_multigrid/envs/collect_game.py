@@ -67,7 +67,7 @@ class CollectGameEnv(MultiGridEnv):
             #print(index)
             if counter1 == 0:
                 aball = Ball(self.world, index, reward)
-                self.place_obj(aball)
+                self.place_obj(aball,thepos=[8,8])
             else:
                 if counter1 == 1:
                     aball = Ball(self.world, index, reward)
@@ -84,7 +84,7 @@ class CollectGameEnv(MultiGridEnv):
         counter2 = 0
         for a in self.agents:
             if counter2 == 0:
-                self.place_agent(a)
+                self.place_agent(a,thepos=[1,1])
             else:
                 if counter2 == 1:
                     self.place_agent(a,thepos =[5,5])
