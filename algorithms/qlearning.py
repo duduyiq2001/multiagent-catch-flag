@@ -7,6 +7,8 @@ import sys
 import gym
 import numpy as np
 import logging
+import tqdm
+import random
 logging.basicConfig(filename='training.log', level=logging.INFO)
 sys.path.append(r"../")
 # Define the multi-agent environment.
@@ -18,7 +20,7 @@ learning_rate = 0.7 # Learning rate
 n_eval_episodes = 100 # Total number of test episodes
 from collections import defaultdict
 # Environment parameters
-max_steps = 99 # Max steps per episode
+max_steps = 150 # Max steps per episode
 gamma = 0.95
 
 max_epsilon = 1.0 # Exploration probability at start
@@ -48,6 +50,7 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
         # np.argmax can be useful here
         #action = np.argmax(Qtable[state][:])
         action = greedy_policy(Qtable, state) + 1
+        #print(f'greedy{action}')
         # else --> exploration
     else:
         '''
@@ -56,20 +59,20 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
         
         action = random.randint(0,length-1)
         '''
-        action = np.random.choice(Qtable[state]) + 1
+        action = random.randint(1,4) 
     return action
 def getadvobs(obs):
-    advobs = []
-    advobs.append(obs[3])
-    advobs[0].append(obs[6])
-    return advobs
+    
+    advobs = np.append(obs[3], obs[6])
+    #print(advobs)
+    return tuple(advobs)
 def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, Qtable):
     # store the training progress of this algorithm for each episode
     episode_steps = []
     episode_resolveds = []
     episode_rewards = []
     counter = 0
-    for episode in tqdm(range(n_training_episodes)):
+    for episode in tqdm.tqdm(range(n_training_episodes)):
         counter += 1
         # Reduce epsilon (because we need less and less exploration)
         epsilon = min_epsilon + (max_epsilon - min_epsilon)*np.exp(-decay_rate*episode)
@@ -81,8 +84,10 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
         state = getadvobs(new_state)
         # repeat
         for step in range(max_steps):
-            `# Choose the action At using epsilon greedy policy
+            # Choose the action At using epsilon greedy policy
             action = epsilon_greedy_policy(Qtable, state, epsilon)
+            #print(action)
+            #print(type(action))
             # Take action At and observe Rt+1 and St+1
             # Take the action (a) and observe the outcome state(s') and reward (r) 
             #print(result)
@@ -94,12 +99,13 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
                 reward[0] + gamma * np.max(Qtable[state]) - Qtable[state][action-1]
             )
             # If done, finish the episode`
-            if done or truncated:
+            if done:
             # -> store the collected rewards & number of steps in this episode 
                 episode_steps.append(step)
                 episode_resolveds.append(1)
                 print(f'episode {counter} has reward {ep_reward}')
                 print(f'episode {counter} has length {step}')
+                print(f'episode with ep{epsilon}')
                 episode_rewards.append(ep_reward)
                 step = 0
                 break

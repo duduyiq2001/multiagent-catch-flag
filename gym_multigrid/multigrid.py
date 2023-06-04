@@ -1291,7 +1291,7 @@ class MultiGridEnv(gym.Env):
 
         rewards = np.zeros(len(actions))
         for i in range(len(rewards)):
-            rewards[i] -= 0.2
+            rewards[i] -= 1
         done = False
 
         for i in order:
