@@ -17,16 +17,16 @@ class SingleAgentWrapper(gym.Env):
     def __init__(self,superenv):
         self.superenv = superenv
         self.action_space = self.superenv.action_space
-        self.observation_space = gym.spaces.Box(low=0, high=8, shape=(12,), dtype=np.int32)
+        self.observation_space = gym.spaces.Box(low=-2, high=12, shape=(7, 7, 4), dtype=np.float32)
     def step(self, action):
         actions = [action]
         actions.append(0)
         actions.append(0)
         obs, rewards, done, info = self.superenv.step(actions)
-        return np.array(obs).flatten(),rewards[0], done, info
+        return np.array(obs[0]).astype(float32),rewards[0], done, info
 
     def reset(self):
-        return np.array(self.superenv.reset()).flatten()
+        return np.array(self.superenv.reset()[0]).astype(float32)
 
 
 register(

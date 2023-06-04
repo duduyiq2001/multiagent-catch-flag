@@ -1461,9 +1461,8 @@ class MultiGridEnv(gym.Env):
 
         obs=[self.objects.normalize_obs*ob for ob in obs]
         info = [thing.cur_pos for thing in self.things[0:3]]
-        info += [thing.pos for thing in self.things[3:6]]
-
-
+        info += [list(thing.pos) for thing in self.things[3:6]]
+        info += [thing.dir for thing in self.things[3:6]]
         return info, rewards, done, {}
 
     def gen_obs_grid(self):

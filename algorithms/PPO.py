@@ -180,11 +180,10 @@ def record_video(env,actnet1, actnet2,out_directory, fps=30):
         adv = env.action_space.sample() 
         print(counter)
         counter +=1
-        ac_of_p1,logprob1 = actnet1.sample( torch.from_numpy(newobs[1]).float().unsqueeze(0).to(device))
-
-                #print(f'ac_of_p1{ac_of_p1} {logprob1}')
-                #return (a.tolist()[0],logprobs[a.tolist()[0]].item())
-        ac_of_p2,logprob2 = actnet2.sample( torch.from_numpy(newobs[2]).float().unsqueeze(0).to(device))
+        ac_of_p1,logprob1 = actnet1.sample(torch.from_numpy(newobs[1]).float().unsqueeze(0).to(device))
+        #print(f'ac_of_p1{ac_of_p1} {logprob1}')
+        #return (a.tolist()[0],logprobs[a.tolist()[0]].item())
+        ac_of_p2,logprob2 = actnet2.sample(torch.from_numpy(newobs[2]).float().unsqueeze(0).to(device))
         actions = [adv,ac_of_p1,ac_of_p2]
         state, reward, done, info = env.step(actions) # We directly put next_stat
         img = env.render(mode='rgb_array')
@@ -240,7 +239,7 @@ def main():
                 newobs = [pruneobs(agent) for agent in obs] ##use newobs
                 newobs[1] = np.transpose(newobs[1], (2, 0, 1))
                 newobs[2] = np.transpose(newobs[2], (2, 0, 1))
-                value1 = critnet1.forward( torch.from_numpy(newobs[1]).float().unsqueeze(0).to(device))
+                value1 = critnet1.forward(torch.from_numpy(newobs[1]).float().unsqueeze(0).to(device))
                 value2 = critnet2.forward(torch.from_numpy(newobs[2]).float().unsqueeze(0).to(device))
                 #print(f'value {value1} {value1.type}')
                 # Convert to a PyTorch tensor

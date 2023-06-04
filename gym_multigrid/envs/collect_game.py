@@ -67,14 +67,14 @@ class CollectGameEnv(MultiGridEnv):
             #print(index)
             if counter1 == 0:
                 aball = Ball(self.world, index, reward)
-                self.place_obj(aball,thepos=[8,8])
+                self.place_obj(aball,thepos=[5,5])
             else:
                 if counter1 == 1:
                     aball = Ball(self.world, index, reward)
-                    self.place_obj(aball,thepos=[1,8])
+                    self.place_obj(aball,thepos=[1,5])
                 else:
                     aball = Ball(self.world, index, reward)
-                    self.place_obj(aball,thepos=[8,1])
+                    self.place_obj(aball,thepos=[5,1])
             
             self.things.append(aball)
             counter1 +=1
@@ -87,9 +87,9 @@ class CollectGameEnv(MultiGridEnv):
                 self.place_agent(a)
             else:
                 if counter2 == 1:
-                    self.place_agent(a,thepos =[5,5])
+                    self.place_agent(a,thepos =[0,0])
                 else:
-                    self.place_agent(a,thepos =[5,6])
+                    self.place_agent(a,thepos =[5,0])
             self.things.append(a)
             counter2 += 1
     def reset(self):
@@ -100,6 +100,8 @@ class CollectGameEnv(MultiGridEnv):
       
         info = [thing.cur_pos for thing in self.things[0:3]]
         info += [thing.pos for thing in self.things[3:6]]
+        info += [thing.dir for thing in self.things[3:6]]
+        
         return info
 
     def _reward(self, i, rewards, reward=1):
@@ -174,5 +176,15 @@ class CollectGamefullobs(CollectGameEnv):
         balls_reward=[1,1,1],
          
         zero_sum=True,ps=False)
+class CollectGame5by5(CollectGameEnv):
+    def __init__(self):
+        super().__init__(size=7,
+        num_balls=[3],
+        agents_index = [1,2,2],
+        balls_index=[1,2,2],
+        balls_reward=[1,1,1],
+         
+        zero_sum=True,ps=False)
        
+
 

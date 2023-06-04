@@ -15,29 +15,17 @@ sys.path.append(r"../")
 class SingleAgentWrapper(gym.Env):
     def __init__(self,superenv):
         self.superenv = superenv
-        self.action_space = self.superenv.action_space
-        self.observation_space = gym.spaces.Box(low=0, high=8, shape=(12,), dtype=np.float32)
+        self.action_space = gym.spaces.Discrete(4)
+        self.observation_space =  gym.spaces.Box(low=-2, high=12, shape=(10, 10, 6), dtype=np.float32)
     def step(self, action):
-        actions = [action]
+        actions = [action+1]
         actions.append(0)
         actions.append(0)
         obs, rewards, done, info = self.superenv.step(actions)
-        return np.array(obs).astype(np.float32).flatten(),rewards[0], done, info
+        return np.array(obs[0]).astype(np.float32),rewards[0], done, info
 
     def reset(self):
-        return np.array(self.superenv.reset()).astype(np.float32).flatten()
-
-
-register(
-            id='multigrid-collect-v0',
-            entry_point='gym_multigrid.envs:CollectGamefullobs',
-        )
-multienv = gym.make('multigrid-collect-v0')
-env = SingleAgentWrapper(multienv)
-check_env(env)
-model = DQN(policy="MlpPolicy", env=env, verbose=1,tensorboard_log= "./")
-#model = DQN.load("bsdpnfulladv",env=env,exploration_initial_eps=0.05, exploration_final_eps=0.03)
-model.learn(total_timesteps=800000,progress_bar=True,log_interval=5)
+        return np.array(self.superenv.reset()[0]).astype(np.float32)
 import imageio
 def record_video(out_directory,env,model, fps=30):
     """
@@ -49,7 +37,6 @@ def record_video(out_directory,env,model, fps=30):
     """
     images = []
     state = env.reset()
-    state = np.array(state).astype(np.float32).flatten()
     done = False
     img = env.render(mode='rgb_array')
     images.append(img)
@@ -58,15 +45,15 @@ def record_video(out_directory,env,model, fps=30):
         # Take the action (index) that have the maximum expected future reward g
         #action, _ = policy.act(state)
         actions = []
-        print(model.predict(state)[0])
+        print(model.predict(np.array(state[0]).astype(np.float32)))
         #print(multienv)
-        actions.append(model.predict(state)[0])
+        actions.append(model.predict(np.array(state[0]).astype(np.float32))[0]+1)
         actions.append(0)
         actions.append(0)
         #print(counter)
         counter +=1
         state, reward, done, info = env.step(actions) # We directly put next_stat
-        state = np.array(state).astype(np.float32).flatten()
+        #state = np.array(state).astype(np.float32).flatten()
         img = env.render(mode='rgb_array')
         env.render(mode= 'human')
         images.append(img)
@@ -74,7 +61,20 @@ def record_video(out_directory,env,model, fps=30):
         if counter >= 200:
             break
 
-record_video('./replay2.mp4',env=multienv,model=model)
+
+register(
+            id='multigrid-collect-v0',
+            entry_point='gym_multigrid.envs:CollectGamefullobs',
+        )
+multienv = gym.make('multigrid-collect-v0')
+env = SingleAgentWrapper(multienv)
+check_env(env)
+#model = DQN(policy="MlpPolicy", env=env, verbose=1,tensorboard_log= "./")
+model = DQN.load("bsdpnfulladvk0",env=env)
+for i in range(10):
+    model.learn(total_timesteps=300000,progress_bar=True,log_interval=5)
+
+    record_video(f'./replay{i}.mp4',env=multienv,model=model)
 
 
-model.save("bsdpnfulladv1")
+    model.save(f'bsdpnfulladvk{i}')
