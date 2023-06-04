@@ -35,7 +35,7 @@ def greedy_policy(Qtable, state):
     
     #print(mask_indices)
     # Find the index of the maximum value in the filtered Qarray
-    action = np.argmax(Qarray) + 1
+    action = np.argmax(Qarray)
     #print(max_index)
     # Get the corresponding index in the original Qarray
     return action
@@ -47,7 +47,7 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
         # Take the action with the highest value given a state
         # np.argmax can be useful here
         #action = np.argmax(Qtable[state][:])
-        action = greedy_policy(Qtable, state)
+        action = greedy_policy(Qtable, state) + 1
         # else --> exploration
     else:
         '''
@@ -56,13 +56,12 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
         
         action = random.randint(0,length-1)
         '''
-        action = np.random.choice(Qtable[state])
+        action = np.random.choice(Qtable[state]) + 1
     return action
 def getadvobs(obs):
     advobs = []
-    advobs.append(obs[0])
     advobs.append(obs[3])
-    advobs[1].append(obs[6])
+    advobs[0].append(obs[6])
     return advobs
 def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, Qtable):
     # store the training progress of this algorithm for each episode
@@ -73,7 +72,7 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
     for episode in tqdm(range(n_training_episodes)):
         counter += 1
         # Reduce epsilon (because we need less and less exploration)
-        epsilon = min_epsilon + (max_epsilon - min_epsilon)*np.exp(-decay_rate*e
+        epsilon = min_epsilon + (max_epsilon - min_epsilon)*np.exp(-decay_rate*episode)
         # Reset the environment
         new_state = env.reset()
         #print(state)
@@ -84,19 +83,15 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
         for step in range(max_steps):
             `# Choose the action At using epsilon greedy policy
             action = epsilon_greedy_policy(Qtable, state, epsilon)
-            
             # Take action At and observe Rt+1 and St+1
-            # Take the action (a) and observe the outcome state(s') and reward (r)
-            
+            # Take the action (a) and observe the outcome state(s') and reward (r) 
             #print(result)
             actions = [action,0,0]
-            new_state, reward, done,info = env.step(action)
+            new_state, reward, done,info = env.step(actions)
             state = getadvobs(new_state)
             ep_reward += reward[0]
-            
-            
-            Qtable[state[action]] += Qtable[state][action] + learning_rate * (
-                reward[0] + gamma * np.max(Qtable[new_state]) - Qtable[state][action]
+            Qtable[state][action-1] += Qtable[state][action-1] + learning_rate * (
+                reward[0] + gamma * np.max(Qtable[state]) - Qtable[state][action-1]
             )
             # If done, finish the episode`
             if done or truncated:
@@ -104,6 +99,7 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
                 episode_steps.append(step)
                 episode_resolveds.append(1)
                 print(f'episode {counter} has reward {ep_reward}')
+                print(f'episode {counter} has length {step}')
                 episode_rewards.append(ep_reward)
                 step = 0
                 break
