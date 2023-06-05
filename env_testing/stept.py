@@ -17,6 +17,13 @@ def getadvobs(obs):
     advobs = np.append(obs[3], obs[6])
     #print(advobs)
     return tuple(advobs)
+def getplayerobs(obs):
+    
+    p1obs = np.append(obs[4], obs[7])
+    p2obs = np.append(obs[5], obs[8])
+    players = np.append(p1obs,p2obs)
+    print(players)
+
 
 def main():
 
@@ -45,7 +52,7 @@ def main():
             print(ac)
 
             obs, rewards, done, _ = env.step(ac)
-            print(getadvobs(obs))
+            print(getplayerobs(obs))
 
             print(f'reward {rewards}')
             total0 += rewards[0]

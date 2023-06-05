@@ -20,7 +20,7 @@ learning_rate = 0.7# Learning rate
 n_eval_episodes = 110 # Total number of test episodes
 from collections import defaultdict
 # Environment parameters
-max_steps = 300 # Max steps per episode
+max_steps = 500 # Max steps per episode
 gamma = 0.95
 
 max_epsilon = 1.0 # Exploration probability at start
@@ -38,7 +38,7 @@ def action_look(actnum):
     return [player1,player2]
 def actnum_look(actions):
     player1 = actions[0]
-    player2 - actions[1]
+    player2 = actions[1]
     return int(player1*4 + player2)
 def greedy_policy(Qtable, state):
     # Exploitation: take the action with the highest state, action value
@@ -49,7 +49,7 @@ def greedy_policy(Qtable, state):
     action = np.argmax(Qarray)
     #print(max_index)
     # Get the corresponding index in the original Qarray
-    return action
+    return action_look(action)
 def epsilon_greedy_policy(Qtable, state, epsilon):
     # Randomly generate a number between 0 and 1
     random_num = random.random()
@@ -74,12 +74,12 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
         player2 = random.randint(1,4)
 
     return [player1,player2]
-def getadvobs(obs):
+def getplayerobs(obs):
     
     p1obs = np.append(obs[4], obs[7])
     p2obs = np.append(obs[5], obs[8])
     players = np.append(p1obs,p2obs)
-    print(players)
+    #print(players)
 
     #print(advobs)
     return tuple(players)
@@ -98,13 +98,14 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
         #print(state)
         done = False
         ep_reward = 0
-        state = getadvobs(new_state)
+        state = getplayerobs(new_state)
         # repeat
         steps = 0
         for i in range(max_steps):
             # Choose the action At using epsilon greedy policy
             steps += 1
             actions = epsilon_greedy_policy(Qtable, state, epsilon)
+            #print(actions)
             #print(action)
             #print(type(action))
             # Take action At and observe Rt+1 and St+1
@@ -112,15 +113,15 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
             #print(result)
             actions = [0,actions[0],actions[1]]
             new_state, reward, done,info = env.step(actions)
-            new_state = getadvobs(new_state)
+            new_state = getplayerobs(new_state)
             try:
                 ep_reward += reward[0]
-                actnum = actnum_look([actions[0]-1,actions[1]-1])
-                Qtable[state][action-1] += Qtable[state][actnum] + learning_rate * (
+                actnum = actnum_look([actions[1]-1,actions[2]-1])
+                Qtable[state][actnum] += Qtable[state][actnum] + learning_rate * (
                     reward[0] + gamma * np.max(Qtable[new_state]) - Qtable[state][actnum]
                 )
-                if Qtable[state][action-1] < 0.0:
-                    Qtable[state][action-1] = 0.0
+                if Qtable[state][actnum] < 0.0:
+                    Qtable[state][actnum] = 0.0
                
 
                 # Normalize the array by dividing each element by the sum

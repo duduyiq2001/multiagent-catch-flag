@@ -84,12 +84,12 @@ class CollectGameEnv(MultiGridEnv):
         counter2 = 0
         for a in self.agents:
             if counter2 == 0:
-                self.place_agent(a)
+                self.place_agent(a,thepos=[6,6])
             else:
                 if counter2 == 1:
-                    self.place_agent(a,thepos =[0,0])
+                    self.place_agent(a)
                 else:
-                    self.place_agent(a,thepos =[5,0])
+                    self.place_agent(a)
             self.things.append(a)
             counter2 += 1
     def reset(self):
@@ -136,9 +136,11 @@ class CollectGameEnv(MultiGridEnv):
                     if self.agents[i].index == 2:
                         self.remaining_ball -= 1  
                         #print(f'self.remaining_ball {self.remaining_ball}')          
-                        if self.remaining_ball <= 0:
+                        if self.remaining_ball <= 0 :
                             self._reward(team, rewards, 20)
                             self.donedone = True
+                        if self.remaining_ball == 1:
+                            self._reward(team, rewards, 20)
                         
                     else:
                         self._reward(team, rewards, 40)
