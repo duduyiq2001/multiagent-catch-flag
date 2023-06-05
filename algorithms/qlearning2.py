@@ -14,7 +14,7 @@ sys.path.append(r"../")
 # Define the multi-agent environment.
 
 # Training parameters
-n_training_episodes = 25000 # Total training episodes
+n_training_episodes = 50000 # Total training episodes
 learning_rate = 0.7# Learning rate
 # Evaluation parameters
 n_eval_episodes = 110 # Total number of test episodes
