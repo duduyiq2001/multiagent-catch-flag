@@ -1,4 +1,3 @@
-
 import gym
 import time
 from gym.envs.registration import register
@@ -28,10 +27,19 @@ max_epsilon = 1.0 # Exploration probability at start
 min_epsilon = 0.05 # Minimum exploration probability 
 decay_rate = 0.001
 def default_value():
-    return np.array([300.0, 300.0, 300.0, 300.0])
+   
+    return np.array([300.0, 300.0, 300.0, 300.0,300.0,300.0,300.0,300.0,300.0,300.0,300.0, 300.0, 300.0, 300.0,300.0,300.0])
 qtable = defaultdict(default_value)
 
 
+def action_look(actnum):
+    player1 = actnum//4
+    player2 = actnum%4
+    return [player1,player2]
+def actnum_look(actions):
+    player1 = actions[0]
+    player2 - actions[1]
+    return int(player1*4 + player2)
 def greedy_policy(Qtable, state):
     # Exploitation: take the action with the highest state, action value
     Qarray = Qtable[state]
@@ -50,7 +58,9 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
         # Take the action with the highest value given a state
         # np.argmax can be useful here
         #action = np.argmax(Qtable[state][:])
-        action = greedy_policy(Qtable, state) + 1
+        actions = greedy_policy(Qtable, state)
+        player1 = actions[0] + 1
+        player2 = actions[1] + 1
         #print(f'greedy{action}')
         # else --> exploration
     else:
@@ -60,13 +70,19 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
         
         action = random.randint(0,length-1)
         '''
-        action = random.randint(1,4) 
-    return action
+        player1 = random.randint(1,4)
+        player2 = random.randint(1,4)
+
+    return [player1,player2]
 def getadvobs(obs):
     
-    advobs = np.append(obs[3], obs[6])
+    p1obs = np.append(obs[4], obs[7])
+    p2obs = np.append(obs[5], obs[8])
+    players = np.append(p1obs,p2obs)
+    print(players)
+
     #print(advobs)
-    return tuple(advobs)
+    return tuple(players)
 def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, Qtable):
     # store the training progress of this algorithm for each episode
     episode_steps = []
@@ -88,27 +104,27 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
         for i in range(max_steps):
             # Choose the action At using epsilon greedy policy
             steps += 1
-            action = epsilon_greedy_policy(Qtable, state, epsilon)
+            actions = epsilon_greedy_policy(Qtable, state, epsilon)
             #print(action)
             #print(type(action))
             # Take action At and observe Rt+1 and St+1
             # Take the action (a) and observe the outcome state(s') and reward (r) 
             #print(result)
-            actions = [action,0,0]
+            actions = [0,actions[0],actions[1]]
             new_state, reward, done,info = env.step(actions)
             new_state = getadvobs(new_state)
             try:
                 ep_reward += reward[0]
-                
-                Qtable[state][action-1] += Qtable[state][action-1] + learning_rate * (
-                    reward[0] + gamma * np.max(Qtable[new_state]) - Qtable[state][action-1]
+                actnum = actnum_look([actions[0]-1,actions[1]-1])
+                Qtable[state][action-1] += Qtable[state][actnum] + learning_rate * (
+                    reward[0] + gamma * np.max(Qtable[new_state]) - Qtable[state][actnum]
                 )
                 if Qtable[state][action-1] < 0.0:
                     Qtable[state][action-1] = 0.0
                
 
                 # Normalize the array by dividing each element by the sum
-                Qtable[state] = (Qtable[state] / np.sum(Qtable[state]))*1200.0
+                Qtable[state] = (Qtable[state] / np.sum(Qtable[state]))*4800.0
 
                 state = new_state
             except RuntimeWarning:
@@ -149,15 +165,16 @@ register(
             entry_point='gym_multigrid.envs:CollectGame5by5',
         )
 env = gym.make('multigrid-collect-v0')
+print( np.array([300.0, 300.0, 300.0, 300.0,300.0,300.0,300.0,300.0,300.0,300.0,300.0, 300.0, 300.0, 300.0,300.0,300.0]).size)
 policy,episode_rewards,episode_steps,episode_resolveds = train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, qtable)
 
 str_policy = {str(k): v.tolist() if isinstance(v, np.ndarray) else v for k, v in policy.items()}
 
-with open('policy4.json', 'w') as fp:
+with open('policyp1p2.json', 'w') as fp:
     json.dump(str_policy, fp)
 
 # Load the JSON and convert keys back to tuples.
-with open('policy4.json', 'r') as fp:
+with open('policyp1p2.json', 'r') as fp:
     str_policy = json.load(fp)
 
 apolicy = {eval(k): np.array(v) if isinstance(v, list) else v for k, v in str_policy.items()}

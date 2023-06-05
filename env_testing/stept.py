@@ -3,6 +3,7 @@ import time
 from gym.envs.registration import register
 import argparse
 import sys
+import numpy as np
 #sys.path.append(r"C:\Users\Administrator\Desktop\multiagent-catch-flag")
 sys.path.append(r"../")
 
@@ -12,11 +13,10 @@ parser.add_argument('-e', '--env', default='c', type=str)
 
 args = parser.parse_args()
 def getadvobs(obs):
-    advobs = []
-    advobs.append(obs[0])
-    advobs.append(obs[3])
-    advobs[1].append(obs[6])
-    return advobs
+    
+    advobs = np.append(obs[3], obs[6])
+    #print(advobs)
+    return tuple(advobs)
 
 def main():
 
