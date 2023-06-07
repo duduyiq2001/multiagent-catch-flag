@@ -22,6 +22,8 @@ def getplayerobs(obs):
     p1obs = np.append(obs[4], obs[7])
     p2obs = np.append(obs[5], obs[8])
     players = np.append(p1obs,p2obs)
+    players = np.append(players,obs[9])
+    players = np.append(players,obs[10])
     print(players)
 
 

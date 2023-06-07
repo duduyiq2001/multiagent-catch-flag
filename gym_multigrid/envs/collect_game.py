@@ -101,6 +101,15 @@ class CollectGameEnv(MultiGridEnv):
         info = [thing.cur_pos for thing in self.things[0:3]]
         info += [thing.pos for thing in self.things[3:6]]
         info += [thing.dir for thing in self.things[3:6]]
+        if info[1][0] == -1:
+            info.append(0)
+        else:
+            info.append(1)
+        if info[2][0] == -1:
+            info.append(0)
+        else:
+            info.append(1)
+        
         
         return info
 

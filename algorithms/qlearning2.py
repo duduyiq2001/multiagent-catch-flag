@@ -79,9 +79,9 @@ def getplayerobs(obs):
     p1obs = np.append(obs[4], obs[7])
     p2obs = np.append(obs[5], obs[8])
     players = np.append(p1obs,p2obs)
-    #print(players)
-
-    #print(advobs)
+    players = np.append(players,obs[9])
+    players = np.append(players,obs[10])
+    
     return tuple(players)
 def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, Qtable):
     # store the training progress of this algorithm for each episode
@@ -114,6 +114,7 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
             actions = [0,actions[0],actions[1]]
             new_state, reward, done,info = env.step(actions)
             new_state = getplayerobs(new_state)
+            #print(new_state)
             try:
                 ep_reward += reward[0]
                 actnum = actnum_look([actions[1]-1,actions[2]-1])
@@ -171,11 +172,11 @@ policy,episode_rewards,episode_steps,episode_resolveds = train(n_training_episod
 
 str_policy = {str(k): v.tolist() if isinstance(v, np.ndarray) else v for k, v in policy.items()}
 
-with open('policyp1p2.json', 'w') as fp:
+with open('policyp1p2A.json', 'w') as fp:
     json.dump(str_policy, fp)
 
 # Load the JSON and convert keys back to tuples.
-with open('policyp1p2.json', 'r') as fp:
+with open('policyp1p2A.json', 'r') as fp:
     str_policy = json.load(fp)
 
 apolicy = {eval(k): np.array(v) if isinstance(v, list) else v for k, v in str_policy.items()}
