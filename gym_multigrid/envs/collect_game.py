@@ -84,7 +84,7 @@ class CollectGameEnv(MultiGridEnv):
         counter2 = 0
         for a in self.agents:
             if counter2 == 0:
-                self.place_agent(a,thepos=[6,6])
+                self.place_agent(a)
             else:
                 if counter2 == 1:
                     self.place_agent(a)
