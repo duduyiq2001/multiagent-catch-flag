@@ -189,7 +189,7 @@ with open('policyp1A.json', 'w') as fp:
     json.dump(str_policy1, fp)
 
 # Load the JSON and convert keys back to tuples.
-with open('policyp2A.json', 'r') as fp1:
+with open('policyp2A.json', 'w') as fp1:
     json.dump(str_policy2, fp1)
     
     
