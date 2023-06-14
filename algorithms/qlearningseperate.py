@@ -119,17 +119,17 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
                 Qtable1[state][action1-1] += Qtable1[state][action1-1] + learning_rate * (
                     reward[1] + gamma * np.max(Qtable1[new_state]) - Qtable1[state][action1-1]
                 )
-                Qtable1[state] = softmax(Qtable1[state])
-                #print(Qtable[state])
-                Qtable1[state] *= 4800.0
+                if Qtable1[state][action1-1] < 0:
+                    Qtable1[state][action1-1] = 0.0
+                Qtable1[state] = (Qtable1[state] / np.sum(Qtable1[state]))*1200.0
                 #update player2
                 ep_reward2 += reward[2] 
                 Qtable2[state][action2-1] += Qtable2[state][action2-1] + learning_rate * (
                     reward[2] + gamma * np.max(Qtable2[new_state]) - Qtable2[state][action2-1]
                 )
-                Qtable2[state] = softmax(Qtable2[state])
-                #print(Qtable[state])
-                Qtable2[state] *= 4800.0
+                if Qtable2[state][action2-1] < 0:
+                    Qtable2[state][action2-1] = 0.0
+                Qtable2[state] = (Qtable2[state] / np.sum(Qtable2[state]))*1200.0
 
                 state = new_state
             except RuntimeWarning:

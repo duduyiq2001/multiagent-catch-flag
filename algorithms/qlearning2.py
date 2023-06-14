@@ -16,7 +16,7 @@ sys.path.append(r"../")
 # Define the multi-agent environment.
 
 # Training parameters
-n_training_episodes = 50 # Total training episodes
+n_training_episodes = 50000# Total training episodes
 learning_rate = 0.7# Learning rate
 # Evaluation parameters
 n_eval_episodes = 110 # Total number of test episodes
@@ -124,9 +124,10 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
                 Qtable[state][actnum] += Qtable[state][actnum] + learning_rate * (
                     reward[1]+reward[2] + gamma * np.max(Qtable[new_state]) - Qtable[state][actnum]
                 )
-                Qtable[state] = softmax(Qtable[state])
-                #print(Qtable[state])
-                Qtable[state] *= 4800.0
+                
+                if Qtable[state][actnum] < 0:
+                    Qtable[state][actnum] = 0.0
+                Qtable[state] = (Qtable[state] / np.sum(Qtable[state]))*1200.0
 
                 state = new_state
             except RuntimeWarning:
