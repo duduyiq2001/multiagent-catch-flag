@@ -32,6 +32,15 @@ def default_value():
 policy1 = defaultdict(default_value)
 policy2 = defaultdict(default_value)
 
+register(
+            id='multigrid-collect-v0',
+            entry_point='gym_multigrid.envs:CollectGame5by5',
+        )
+env = gym.make('multigrid-collect-v0')
+policy,episode_rewards,episode_steps,episode_resolveds = train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, qtable)
+
+str_policy = {str(k): v.tolist() if isinstance(v, np.ndarray) else v for k, v in policy.items()}
+
 
 
 

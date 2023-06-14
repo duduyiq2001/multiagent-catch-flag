@@ -16,7 +16,7 @@ sys.path.append(r"../")
 # Define the multi-agent environment.
 
 # Training parameters
-n_training_episodes = 50 # Total training episodes
+n_training_episodes = 50000 # Total training episodes
 learning_rate = 0.7# Learning rate
 # Evaluation parameters
 n_eval_episodes = 110 # Total number of test episodes
@@ -30,18 +30,11 @@ min_epsilon = 0.05 # Minimum exploration probability
 decay_rate = 0.001
 def default_value():
    
-    return np.array([300.0, 300.0, 300.0, 300.0,300.0,300.0,300.0,300.0,300.0,300.0,300.0, 300.0, 300.0, 300.0,300.0,300.0])
-qtable = defaultdict(default_value)
+    return np.array([300.0, 300.0, 300.0, 300.0])
+qtable1 = defaultdict(default_value)
+qtable2 = defaultdict(default_value)
 
 
-def action_look(actnum):
-    player1 = actnum//4
-    player2 = actnum%4
-    return [player1,player2]
-def actnum_look(actions):
-    player1 = actions[0]
-    player2 = actions[1]
-    return int(player1*4 + player2)
 def greedy_policy(Qtable, state):
     # Exploitation: take the action with the highest state, action value
     Qarray = Qtable[state]
@@ -51,7 +44,7 @@ def greedy_policy(Qtable, state):
     action = np.argmax(Qarray)
     #print(max_index)
     # Get the corresponding index in the original Qarray
-    return action_look(action)
+    return action
 def epsilon_greedy_policy(Qtable, state, epsilon):
     # Randomly generate a number between 0 and 1
     random_num = random.random()
@@ -60,9 +53,8 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
         # Take the action with the highest value given a state
         # np.argmax can be useful here
         #action = np.argmax(Qtable[state][:])
-        actions = greedy_policy(Qtable, state)
-        player1 = actions[0] + 1
-        player2 = actions[1] + 1
+        action = greedy_policy(Qtable, state) +1
+       
         #print(f'greedy{action}')
         # else --> exploration
     else:
@@ -72,10 +64,9 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
         
         action = random.randint(0,length-1)
         '''
-        player1 = random.randint(1,4)
-        player2 = random.randint(1,4)
-
-    return [player1,player2]
+        action = random.randint(1,4)
+    
+    return action
 def getplayerobs(obs):
     
     p1obs = np.append(obs[4], obs[7])
@@ -86,11 +77,12 @@ def getplayerobs(obs):
     #print(players)
     
     return tuple(players)
-def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, Qtable):
+def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, Qtable1,Qtable2):
     # store the training progress of this algorithm for each episode
     episode_steps = []
     episode_resolveds = []
-    episode_rewards = []
+    episode_rewards1 = []
+    episode_rewards2 = []
     counter = 0
     for episode in tqdm.tqdm(range(n_training_episodes)):
         counter += 1
@@ -100,56 +92,72 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
         new_state = env.reset()
         #print(state)
         done = False
-        ep_reward = 0
+        ep_reward1 = 0
+        ep_reward2 = 0
         state = getplayerobs(new_state)
         # repeat
         steps = 0
         for i in range(max_steps):
             # Choose the action At using epsilon greedy policy
             steps += 1
-            actions = epsilon_greedy_policy(Qtable, state, epsilon)
+            action1 = epsilon_greedy_policy(Qtable1,state,epsilon)
+            action2 = epsilon_greedy_policy(Qtable2,state,epsilon)
             #print(actions)
             #print(action)
             #print(type(action))
             # Take action At and observe Rt+1 and St+1
             # Take the action (a) and observe the outcome state(s') and reward (r) 
             #print(result)
-            actions = [0,actions[0],actions[1]]
+            actions = [0,action1,action2]
+            #print(actions)
             new_state, reward, done,info = env.step(actions)
             new_state = getplayerobs(new_state)
             #print(new_state)
             try:
-                ep_reward += reward[1] + reward[2]
-                actnum = actnum_look([actions[1]-1,actions[2]-1])
-                Qtable[state][actnum] += Qtable[state][actnum] + learning_rate * (
-                    reward[1]+reward[2] + gamma * np.max(Qtable[new_state]) - Qtable[state][actnum]
+                #update player1
+                ep_reward1 += reward[1] 
+                Qtable1[state][action1-1] += Qtable1[state][action1-1] + learning_rate * (
+                    reward[1] + gamma * np.max(Qtable1[new_state]) - Qtable1[state][action1-1]
                 )
-                Qtable[state] = softmax(Qtable[state])
+                Qtable1[state] = softmax(Qtable1[state])
                 #print(Qtable[state])
-                Qtable[state] *= 4800.0
+                Qtable1[state] *= 4800.0
+                #update player2
+                ep_reward2 += reward[2] 
+                Qtable2[state][action2-1] += Qtable2[state][action2-1] + learning_rate * (
+                    reward[2] + gamma * np.max(Qtable2[new_state]) - Qtable2[state][action2-1]
+                )
+                Qtable2[state] = softmax(Qtable2[state])
+                #print(Qtable[state])
+                Qtable2[state] *= 4800.0
 
                 state = new_state
             except RuntimeWarning:
                 print("Overflow or invalid value encountered!")
                 print("State: ", state)
-                print("Action: ", action)
-                print("Reward: ", reward[1] + reward[2])
+                print("Action: ", action1)
+                print("Reward: ", reward[1])
                 print("Gamma: ", gamma)
-                print("Qtable[state]: ", Qtable[state])
+                print("Qtable[state]: ", Qtable1[state])
                 raise Exception
             # If done, finish the episode`
             if done:
             # -> store the collected rewards & number of steps in this episode 
                 episode_steps.append(steps)
                 episode_resolveds.append(1)
-                print(f'episode {counter} has reward {ep_reward}')
+                print(f'episode {counter} has player1 reward {ep_reward1}')
+                print(f'episode {counter} has player2 reward {ep_reward2}')
                 print(f'episode {counter} has length {steps}')
                 print(f'episode with ep{epsilon}')
                 if episode %200 == 41:
-                    with tf.summary.create_file_writer("two_playerteam").as_default():
-                        tf.summary.scalar('reward',sum(episode_rewards[-40:])/40.0, step=episode)
+                    with tf.summary.create_file_writer("two_playerteamsep").as_default():
+                        tf.summary.scalar('reward1',sum(episode_rewards1[-40:])/40.0, step=episode)
+                        tf.summary.scalar('reward2',sum(episode_rewards2[-40:])/40.0, step=episode)
                         tf.summary.scalar('length',sum(episode_steps[-40:])/40.0, step=episode)
-                episode_rewards.append(ep_reward)
+                episode_rewards1.append(ep_reward1)
+                episode_rewards2.append(ep_reward2)
+                #print(episode_rewards1)
+                #print(episode_rewards2)
                 step = 0
                 break
                 # Our next state is the new state
@@ -158,12 +166,13 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
             # -> store the collected rewards & number of steps in this episode 
             episode_steps.append(steps)
             episode_resolveds.append(0)
-            episode_rewards.append(ep_reward)
+            episode_rewards1.append(ep_reward1)
+            episode_rewards2.append(ep_reward2)
             steps = 0
             print("ended")
         
             
-    return Qtable, episode_rewards, episode_steps, episode_resolveds
+    return Qtable1,Qtable2, episode_rewards1,episode_rewards2, episode_steps, episode_resolveds
 
 
 register(
@@ -171,17 +180,25 @@ register(
             entry_point='gym_multigrid.envs:CollectGame5by5',
         )
 env = gym.make('multigrid-collect-v0')
-policy,episode_rewards,episode_steps,episode_resolveds = train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, qtable)
+policy1,policy2,episode_rewards1,episode_rewards2,episode_steps,episode_resolveds = train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, qtable1,qtable2)
 
-str_policy = {str(k): v.tolist() if isinstance(v, np.ndarray) else v for k, v in policy.items()}
+str_policy1 = {str(k): v.tolist() if isinstance(v, np.ndarray) else v for k, v in policy1.items()}
+str_policy2 = {str(k): v.tolist() if isinstance(v, np.ndarray) else v for k, v in policy2.items()}
 
-with open('policyp1p2B.json', 'w') as fp:
-    json.dump(str_policy, fp)
+with open('policyp1A.json', 'w') as fp:
+    json.dump(str_policy1, fp)
 
 # Load the JSON and convert keys back to tuples.
-with open('policyp1p2B.json', 'r') as fp:
-    str_policy = json.load(fp)
+with open('policyp2A.json', 'r') as fp1:
+    json.dump(str_policy2, fp1)
+    
+    
 
-apolicy = {eval(k): np.array(v) if isinstance(v, list) else v for k, v in str_policy.items()}
+with open('policyp1A.json', 'r') as fp2:
+    str_policy1 = json.load(fp2)
+with open('policyp2A.json', 'r') as fp3:
+    str_policy2 = json.load(fp3)
 
-print(apolicy)  # {(1, 2): 'value'}
+apolicy1 = {eval(k): np.array(v) if isinstance(v, list) else v for k, v in str_policy1.items()}
+
+print(apolicy1)  # {(1, 2): 'value'}

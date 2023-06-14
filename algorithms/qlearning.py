@@ -153,11 +153,11 @@ policy,episode_rewards,episode_steps,episode_resolveds = train(n_training_episod
 
 str_policy = {str(k): v.tolist() if isinstance(v, np.ndarray) else v for k, v in policy.items()}
 
-with open('policy4.json', 'w') as fp:
+with open('policy5.json', 'w') as fp:
     json.dump(str_policy, fp)
 
 # Load the JSON and convert keys back to tuples.
-with open('policy4.json', 'r') as fp:
+with open('policy5.json', 'r') as fp:
     str_policy = json.load(fp)
 
 apolicy = {eval(k): np.array(v) if isinstance(v, list) else v for k, v in str_policy.items()}
