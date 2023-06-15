@@ -16,7 +16,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 time.sleep(5)
 sys.path.append(r"../")
-with open('policyp1p2B.json', 'r') as fp:
+with open('../savedmodels/policyp1p2B.json', 'r') as fp:
     str_policy = json.load(fp)
     #print(str_policy)
 data = {eval(k): np.array(v) for k, v in str_policy.items()}
@@ -62,10 +62,10 @@ Generate a replay video of the agent
 :param fps: how many frame per seconds (with taxi-v3 and frozenlake-v1 we
 """
 register(
-        id='multigrid-collect-v0',
-        entry_point='gym_multigrid.envs:CollectGame5by5',
+        id='multigrid-collect-v2',
+        entry_point='gym_multigrid.envs:CollectGame235by5',
     )
-env = gym.make('multigrid-collect-v0')
+env = gym.make('multigrid-collect-v2')
 state = env.reset()
 state = getplayerobs(state)
 print(state)
@@ -79,12 +79,6 @@ while not done:
     #action, _ = policy.act(state)
     actions = greedy_policy(apolicy, state)
     print(actions[0] +1, actions[1]+1)
-    #print(actions)
-    #print(action)
-    #print(type(action))
-    # Take action At and observe Rt+1 and St+1
-    # Take the action (a) and observe the outcome state(s') and reward (r) 
-    #print(result)
     actions = [0,actions[0]+1,actions[1]+1]
     new_state, reward, done,info = env.step(actions)
     new_state = getplayerobs(new_state)
