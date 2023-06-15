@@ -16,7 +16,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 time.sleep(5)
 sys.path.append(r"../")
-with open('policyp1p2.json', 'r') as fp:
+with open('policyp1p2B.json', 'r') as fp:
     str_policy = json.load(fp)
     #print(str_policy)
 data = {eval(k): np.array(v) for k, v in str_policy.items()}
@@ -48,6 +48,8 @@ def getplayerobs(obs):
     p1obs = np.append(obs[4], obs[7])
     p2obs = np.append(obs[5], obs[8])
     players = np.append(p1obs,p2obs)
+    players = np.append(players,obs[9])
+    players = np.append(players,obs[10])
     #print(players)
 
     #print(advobs)
