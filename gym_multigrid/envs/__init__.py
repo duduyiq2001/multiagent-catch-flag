@@ -1,6 +1,0 @@
-from gym_multigrid.envs.collect_game import CollectGame4HEnv10x10N2
-from gym_multigrid.envs.collect_game import CollectGamefullobs
-from gym_multigrid.envs.soccer_game import SoccerGame4HEnv10x15N2
-from gym_multigrid.envs.collect_game import CollectGame5by5
-from gym_multigrid.envs.collect_game1 import CollectGame15by5
-from gym_multigrid.envs.collect_game23 import CollectGame235by5
